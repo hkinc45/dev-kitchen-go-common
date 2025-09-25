@@ -1,4 +1,4 @@
-module github.com/dev-kitchen/go-common
+module github.com/hkinc45/dev-kitchen-go-common
 
 go 1.24.3
 
