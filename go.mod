@@ -5,6 +5,7 @@ go 1.24.3
 require (
 	github.com/coreos/go-oidc/v3 v3.15.0
 	github.com/gin-gonic/gin v1.11.0
+	github.com/google/uuid v1.6.0
 )
 
 require (
