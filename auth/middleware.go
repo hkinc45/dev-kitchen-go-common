@@ -2,40 +2,43 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
+	"github.com/hkinc45/dev-kitchen-go-common/models"
 )
 
 // Middleware holds the OIDC token verifier and other configuration for auth checks.
 type Middleware struct {
-	Verifier *oidc.IDTokenVerifier
-	ClientID string
+	Verifier       *oidc.IDTokenVerifier
+	ClientID       string
+	AuthServiceURL string
 }
 
 // NewMiddleware creates a new OIDC-based authentication middleware.
-func NewMiddleware(ctx context.Context, providerURL, clientID string) (*Middleware, error) {
+func NewMiddleware(ctx context.Context, providerURL, clientID, authServiceURL string) (*Middleware, error) {
 	provider, err := oidc.NewProvider(ctx, providerURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
 	}
 
-	// We use SkipClientIDCheck because we will perform a manual, more flexible
-	// audience check that can handle both string and []string audiences.
 	verifier := provider.Verifier(&oidc.Config{SkipClientIDCheck: true})
 
 	return &Middleware{
-		Verifier: verifier,
-		ClientID: clientID,
+		Verifier:       verifier,
+		ClientID:       clientID,
+		AuthServiceURL: authServiceURL,
 	}, nil
 }
 
 // UserAuth is a middleware for validating tokens from end-users.
-// It checks the audience claim to ensure the token is intended for this service.
+// It now performs a JIT provisioning step by calling the auth-service.
 func (m *Middleware) UserAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -52,7 +55,6 @@ func (m *Middleware) UserAuth() gin.HandlerFunc {
 			return
 		}
 
-		// Extract claims for audience check and for downstream use.
 		var claims map[string]interface{}
 		if err := idToken.Claims(&claims); err != nil {
 			log.Printf("ERROR: Failed to extract claims from token: %v", err)
@@ -66,14 +68,52 @@ func (m *Middleware) UserAuth() gin.HandlerFunc {
 			return
 		}
 
-		// Set user information in context for downstream handlers.
-		c.Set("user_id", claims["sub"])
-		c.Set("user_claims", claims)
+		// JIT Provisioning: Call the auth-service's /me endpoint to get the full user object.
+		// This ensures the user exists in the auth-service DB and we get the canonical Application ID.
+		user, err := m.jitProvisionUser(c.Request.Context(), authHeader)
+		if err != nil {
+			log.Printf("ERROR: JIT provisioning failed: %v", err)
+			c.AbortWithStatusJSON(http.StatusFailedDependency, gin.H{"error": "Failed to retrieve user profile from auth service"})
+			return
+		}
 
-		log.Println("User token validated successfully.")
+		// Set the full user object in the context.
+		c.Set("user", user)
+
+		log.Println("User token validated and user object set successfully.")
 		c.Next()
 	}
 }
+
+// jitProvisionUser calls the auth-service's /me endpoint to get the user object.
+func (m *Middleware) jitProvisionUser(ctx context.Context, authHeader string) (*models.User, error) {
+	meURL := fmt.Sprintf("%s/api/v1/me", m.AuthServiceURL)
+	req, err := http.NewRequestWithContext(ctx, "GET", meURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request to auth-service: %w", err)
+	}
+	req.Header.Set("Authorization", authHeader)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request to auth-service: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("auth-service returned non-200 status: %d - %s", resp.StatusCode, string(tbody))
+	}
+
+	var user models.User
+	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+		return nil, fmt.Errorf("failed to decode user object from auth-service: %w", err)
+	}
+
+	return &user, nil
+}
+
 
 // ServiceAuth is a middleware for validating tokens from other services.
 // It checks that the token has the required `internal-comm` role.
