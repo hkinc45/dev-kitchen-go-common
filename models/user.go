@@ -25,6 +25,7 @@ type User struct {
 	PostalCode        *string   `json:"postal_code,omitempty"`
 	Country           *string   `json:"country,omitempty"`
 	KycStatus         *string   `json:"kyc_status,omitempty"`   // e.g., "unverified", "pending", "verified"
+	GiteaOrgName      *string   `json:"gitea_org_name,omitempty"`
 	Roles             []string  `json:"roles,omitempty"`
 	ProjectRoles      map[string][]string `json:"project_roles,omitempty"`
 }
