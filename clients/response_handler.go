@@ -15,14 +15,14 @@ func HandleResponse(resp *http.Response, successBody interface{}) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		// Special handling for 409 Conflict
 		if resp.StatusCode == http.StatusConflict {
-			return ErrConflict
+			return errors.ErrConflict
 		}
 
-		var apiErr APIError
+		var apiErr errors.APIError
 		if err := json.NewDecoder(resp.Body).Decode(&apiErr); err != nil {
 			// If we can't decode the error, return a generic one.
 			bodyBytes, _ := io.ReadAll(resp.Body)
-			return NewAPIError(resp.StatusCode, fmt.Sprintf("unknown error: %s", string(bodyBytes)))
+			return errors.NewAPIError(resp.StatusCode, fmt.Sprintf("unknown error: %s", string(bodyBytes)))
 		}
 		apiErr.StatusCode = resp.StatusCode // Ensure status code is set
 		return &apiErr
