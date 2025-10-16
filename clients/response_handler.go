@@ -13,6 +13,11 @@ import (
 // It decodes either the success body or an APIError.
 func HandleResponse(resp *http.Response, successBody interface{}) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		// Special handling for 409 Conflict
+		if resp.StatusCode == http.StatusConflict {
+			return errors.ErrConflict
+		}
+
 		var apiErr errors.APIError
 		if err := json.NewDecoder(resp.Body).Decode(&apiErr); err != nil {
 			// If we can't decode the error, return a generic one.
