@@ -1,6 +1,9 @@
 package errors
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
 
 // APIError represents a structured error response from a service.
 type APIError struct {
@@ -18,3 +21,8 @@ func NewAPIError(statusCode int, message string) *APIError {
 		Message:    message,
 	}
 }
+
+// Pre-defined error types
+var (
+	ErrConflict = NewAPIError(http.StatusConflict, "resource already exists")
+)
