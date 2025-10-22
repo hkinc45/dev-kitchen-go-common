@@ -17,6 +17,9 @@ func HandleResponse(resp *http.Response, successBody interface{}) error {
 		if resp.StatusCode == http.StatusConflict {
 			return errors.ErrConflict
 		}
+		if resp.StatusCode == http.StatusNotFound {
+			return errors.NewNotFoundError("resource not found")
+		}
 
 		var apiErr errors.APIError
 		if err := json.NewDecoder(resp.Body).Decode(&apiErr); err != nil {
