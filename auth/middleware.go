@@ -153,9 +153,10 @@ func (m *Middleware) ServiceAuth() gin.HandlerFunc {
 	}
 }
 
-// isAudienceValid checks if the service's ClientID is present in the 'aud' claim.
-// It handles both string and []string formats for the audience claim.
+// isAudienceValid checks if the service's ClientID or the central auth service's ClientID is present in the 'aud' claim.
+// This allows the service to accept both its own tokens and Requesting Party Tokens (RPTs) from the auth service.
 func (m *Middleware) isAudienceValid(claims map[string]interface{}) bool {
+	const authServiceClientID = "dev-kitchen-auth-service"
 	aud, ok := claims["aud"]
 	if !ok {
 		return false
@@ -163,11 +164,13 @@ func (m *Middleware) isAudienceValid(claims map[string]interface{}) bool {
 
 	switch v := aud.(type) {
 	case string:
-		return v == m.ClientID
+		return v == m.ClientID || v == authServiceClientID
 	case []interface{}:
 		for _, a := range v {
-			if s, ok := a.(string); ok && s == m.ClientID {
-				return true
+			if s, ok := a.(string); ok {
+				if s == m.ClientID || s == authServiceClientID {
+					return true
+				}
 			}
 		}
 	}
