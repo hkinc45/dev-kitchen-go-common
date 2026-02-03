@@ -46,7 +46,6 @@ func RequirePermissionV2(resourcePrefix, paramName, scope string) gin.HandlerFun
 			c.Abort()
 			return
 		}
-		userToken := strings.TrimPrefix(authHeader, "Bearer ")
 
 		// 3. Get resource ID from URL parameter
 		resourceID := c.Param(paramName)
