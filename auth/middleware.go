@@ -148,7 +148,7 @@ func (m *Middleware) ServiceAuth() gin.HandlerFunc {
 		}
 
 		azp, _ := claims["azp"].(string)
-		log.Printf("Service token from '%%s' validated successfully.", azp)
+		log.Printf("Service token from '%s' validated successfully.", azp)
 		c.Next()
 	}
 }

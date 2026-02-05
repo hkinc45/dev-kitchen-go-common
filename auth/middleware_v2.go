@@ -22,10 +22,11 @@ type CheckPermissionRequest struct {
 // RequirePermissionV2 creates a Gin middleware that checks if a user has a specific permission for a dynamic resource.
 // It works by calling the internal `/v2/auth/check` endpoint in the auth-service.
 //
+// - httpClient: An authenticated HTTP client for service-to-service calls.
 // - resourcePrefix: The prefix for the resource name (e.g., "project-").
 // - paramName: The name of the URL parameter that contains the resource ID (e.g., "projectId").
 // - scope: The scope to check for (e.g., "project:read").
-func RequirePermissionV2(resourcePrefix, paramName, scope string) gin.HandlerFunc {
+func RequirePermissionV2(httpClient *http.Client, resourcePrefix, paramName, scope string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. Get auth service URL from environment
 		authServiceURL := os.Getenv("AUTH_SERVICE_URL")
@@ -83,7 +84,7 @@ func RequirePermissionV2(resourcePrefix, paramName, scope string) gin.HandlerFun
 		}
 		req.Header.Set("Content-Type", "application/json")
 
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := httpClient.Do(req)
 		if err != nil {
 			c.Error(common_errors.NewInternalServerError("failed to communicate with authentication service"))
 			c.Abort()
