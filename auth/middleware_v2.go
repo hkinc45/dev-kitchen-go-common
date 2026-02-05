@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	common_errors "github.com/hkinc45/dev-kitchen-go-common/errors"
