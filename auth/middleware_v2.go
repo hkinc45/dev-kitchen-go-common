@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	common_errors "github.com/hkinc45/dev-kitchen-go-common/errors"
 )
 
@@ -26,7 +27,7 @@ type CheckPermissionRequest struct {
 // - resourcePrefix: The prefix for the resource name (e.g., "project-").
 // - paramName: The name of the URL parameter that contains the resource ID (e.g., "projectId").
 // - scope: The scope to check for (e.g., "project:read").
-func RequirePermissionV2(httpClient *http.Client, resourcePrefix, paramName, scope string) gin.HandlerFunc {
+func RequirePermissionV2(resolver ProjectResolver, httpClient *http.Client, resourcePrefix, paramName, scope string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. Get auth service URL from environment
 		authServiceURL := os.Getenv("AUTH_SERVICE_URL")
@@ -37,7 +38,6 @@ func RequirePermissionV2(httpClient *http.Client, resourcePrefix, paramName, sco
 		}
 
 		// 2. Get the raw user token from the Authorization header.
-		// The UserAuth middleware validates it, but we need to pass the raw token for the exchange.
 		authHeader := c.GetHeader("Authorization")
 		if !strings.HasPrefix(authHeader, "Bearer ") {
 			c.Error(common_errors.NewUnauthorizedError("authorization header missing or improperly formatted"))
@@ -46,16 +46,26 @@ func RequirePermissionV2(httpClient *http.Client, resourcePrefix, paramName, sco
 		}
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 
-		// 3. Get resource ID from URL parameter
-		resourceID := c.Param(paramName)
-		if resourceID == "" {
-			c.Error(common_errors.NewBadRequestError(fmt.Sprintf("missing resource identifier in URL parameter: %s", paramName)))
+		// 3. Get resource ID from URL parameter and parse it
+		idStr := c.Param(paramName)
+		resourceUUID, err := uuid.Parse(idStr)
+		if err != nil {
+			c.Error(common_errors.NewBadRequestError(fmt.Sprintf("invalid resource identifier format in URL parameter: %s", paramName)))
 			c.Abort()
 			return
 		}
 
-		// 4. Construct the request to the auth service
-		resourceName := fmt.Sprintf("%s%s", resourcePrefix, resourceID)
+		// 4. Resolve the core service ID to the auth service ID using the provided resolver
+		resolvedProject, err := resolver.GetProjectByID(c.Request.Context(), resourceUUID)
+		if err != nil {
+			// This could be a not found error or a database error.
+			c.Error(err)
+			c.Abort()
+			return
+		}
+
+		// 5. Construct the request to the auth service using the CORRECT ID
+		resourceName := fmt.Sprintf("%s%s", resourcePrefix, resolvedProject.AuthServiceProjectID.String())
 		checkReqPayload := CheckPermissionRequest{
 			Resource:     resourceName,
 			Scope:        scope,
