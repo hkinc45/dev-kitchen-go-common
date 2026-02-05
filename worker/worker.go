@@ -12,14 +12,14 @@ import (
 
 // Config holds the configuration for the pull subscriber worker pool.
 type Config struct {
-	StreamName          string
-	Subject             string
-	DurableName         string
-	BatchSize           int
-	MaxConcurrent       int
-	MaxWait             time.Duration
-	Handler             Handler
-	JetStream           nats.JetStreamContext
+	StreamName    string
+	Subject       string
+	DurableName   string
+	BatchSize     int
+	MaxConcurrent int
+	MaxWait       time.Duration
+	Handler       Handler
+	JetStream     nats.JetStreamContext
 }
 
 // Handler is an interface that processing logic must implement.
@@ -33,13 +33,13 @@ type Handler interface {
 
 // PullSubscriber manages a pool of workers to process messages from a NATS JetStream pull subscription.
 type PullSubscriber struct {
-	config    Config
-	sub       *nats.Subscription
-	mu        sync.Mutex
-	active    bool
-	keyLocks  map[string]*sync.Mutex
+	config     Config
+	sub        *nats.Subscription
+	mu         sync.Mutex
+	active     bool
+	keyLocks   map[string]*sync.Mutex
 	keyLocksMu sync.RWMutex
-	semaphore chan struct{}
+	semaphore  chan struct{}
 }
 
 // NewPullSubscriber creates and starts a new concurrent pull subscriber.
@@ -134,7 +134,7 @@ func (ps *PullSubscriber) processMessage(msg *nats.Msg) {
 	}
 
 	log.Printf("Processing message on subject %s with key '%s'", msg.Subject, lockingKey)
-	
+
 	// Create a context for the handler
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute) // 5-minute timeout per message
 	defer cancel()
@@ -169,7 +169,7 @@ func (ps *PullSubscriber) getKeyMutex(key string) *sync.Mutex {
 		ps.keyLocks[key] = mutex
 	}
 	ps.keyLocksMu.Unlock()
-	
+
 	return mutex
 }
 

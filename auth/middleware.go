@@ -114,7 +114,6 @@ func (m *Middleware) jitProvisionUser(ctx context.Context, authHeader string) (*
 	return &user, nil
 }
 
-
 // ServiceAuth is a middleware for validating tokens from other services.
 // It checks that the token has the required `internal-comm` role.
 func (m *Middleware) ServiceAuth() gin.HandlerFunc {
@@ -192,7 +191,7 @@ func (m *Middleware) hasInternalCommRole(claims map[string]interface{}) bool {
 	for _, r := range roles {
 		if role, ok := r.(string); ok && role == "internal-comm" {
 			return true
-			}
+		}
 	}
 	return false
 }
