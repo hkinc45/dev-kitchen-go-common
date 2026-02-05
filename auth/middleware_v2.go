@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	common_errors "github.com/hkinc45/dev-kitchen-go-common/errors"
+	"github.com/hkinc45/dev-kitchen-go-common/models"
 )
 
 // CheckPermissionRequest defines the structure for requests to the auth service's check endpoint.
 type CheckPermissionRequest struct {
-	Resource     string `json:"resource"`
-	Scope        string `json:"scope"`
-	SubjectToken string `json:"subject_token"`
+	Resource   string `json:"resource"`
+	Scope      string `json:"scope"`
+	AuthUserID string `json:"auth_user_id"`
 }
 
 // RequirePermissionV2 creates a Gin middleware that checks if a user has a specific permission for a dynamic resource.
@@ -36,15 +36,20 @@ func RequirePermissionV2(httpClient *http.Client, resourcePrefix, paramName, sco
 			return
 		}
 
-		// 2. Get the raw user token from the Authorization header.
-		// The UserAuth middleware validates it, but we need to pass the raw token for the exchange.
-		authHeader := c.GetHeader("Authorization")
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			c.Error(common_errors.NewUnauthorizedError("authorization header missing or improperly formatted"))
+		// 2. Get User ID from context
+		userValue, exists := c.Get("user")
+		if !exists {
+			c.Error(common_errors.NewUnauthorizedError("user not found in context"))
 			c.Abort()
 			return
 		}
-		token := strings.TrimPrefix(authHeader, "Bearer ")
+
+		user, ok := userValue.(*models.User)
+		if !ok {
+			c.Error(common_errors.NewInternalServerError("invalid user type in context"))
+			c.Abort()
+			return
+		}
 
 		// 3. Get resource ID from URL parameter
 		resourceID := c.Param(paramName)
@@ -57,9 +62,9 @@ func RequirePermissionV2(httpClient *http.Client, resourcePrefix, paramName, sco
 		// 4. Construct the request to the auth service
 		resourceName := fmt.Sprintf("%s%s", resourcePrefix, resourceID)
 		checkReqPayload := CheckPermissionRequest{
-			Resource:     resourceName,
-			Scope:        scope,
-			SubjectToken: token,
+			Resource:   resourceName,
+			Scope:      scope,
+			AuthUserID: user.ID.String(),
 		}
 
 		payloadBytes, err := json.Marshal(checkReqPayload)
