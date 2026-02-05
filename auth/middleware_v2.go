@@ -10,12 +10,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	common_errors "github.com/hkinc45/dev-kitchen-go-common/errors"
+	"github.com/hkinc45/dev-kitchen-go-common/models"
 )
 
 // CheckPermissionRequest defines the structure for requests to the auth service's check endpoint.
 type CheckPermissionRequest struct {
-	Resource string `json:"resource"`
-	Scope    string `json:"scope"`
+	Resource   string `json:"resource"`
+	Scope      string `json:"scope"`
+	AuthUserID string `json:"auth_user_id"`
 }
 
 // RequirePermissionV2 creates a Gin middleware that checks if a user has a specific permission for a dynamic resource.
@@ -34,15 +36,17 @@ func RequirePermissionV2(resourcePrefix, paramName, scope string) gin.HandlerFun
 			return
 		}
 
-		// 2. Extract user token from the header
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.Error(common_errors.NewUnauthorizedError("missing authorization header"))
+		// 2. Get User ID from context
+		userValue, exists := c.Get("user")
+		if !exists {
+			c.Error(common_errors.NewUnauthorizedError("user not found in context"))
 			c.Abort()
 			return
 		}
-		if !strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
-			c.Error(common_errors.NewUnauthorizedError("invalid authorization header format"))
+
+		user, ok := userValue.(*models.User)
+		if !ok {
+			c.Error(common_errors.NewInternalServerError("invalid user type in context"))
 			c.Abort()
 			return
 		}
@@ -58,8 +62,9 @@ func RequirePermissionV2(resourcePrefix, paramName, scope string) gin.HandlerFun
 		// 4. Construct the request to the auth service
 		resourceName := fmt.Sprintf("%s%s", resourcePrefix, resourceID)
 		checkReqPayload := CheckPermissionRequest{
-			Resource: resourceName,
-			Scope:    scope,
+			Resource:   resourceName,
+			Scope:      scope,
+			AuthUserID: user.ID.String(),
 		}
 
 		payloadBytes, err := json.Marshal(checkReqPayload)
@@ -78,10 +83,8 @@ func RequirePermissionV2(resourcePrefix, paramName, scope string) gin.HandlerFun
 			return
 		}
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", authHeader) // Pass the original auth header
 
-		client := &http.Client{}
-		resp, err := client.Do(req)
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			c.Error(common_errors.NewInternalServerError("failed to communicate with authentication service"))
 			c.Abort()
@@ -97,7 +100,8 @@ func RequirePermissionV2(resourcePrefix, paramName, scope string) gin.HandlerFun
 			c.Error(common_errors.NewForbiddenError(fmt.Sprintf("missing required permission: %s on resource %s", scope, resourceName)))
 			c.Abort()
 		case http.StatusUnauthorized:
-			c.Error(common_errors.NewUnauthorizedError("authentication token is invalid or expired"))
+			// This case should ideally not be hit with service-to-service auth, but is kept for robustness.
+			c.Error(common_errors.NewUnauthorizedError("service account is not authorized"))
 			c.Abort()
 		default:
 			c.Error(common_errors.NewInternalServerError(fmt.Sprintf("unexpected error from authentication service: status %d", resp.StatusCode)))
