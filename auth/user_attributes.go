@@ -8,43 +8,61 @@ import (
 	"net/http"
 )
 
-// UserAttribute represents a simple structure for updating user attributes.
-type UserAttribute struct {
-	Attributes map[string][]string `json:"attributes"`
-}
-
-// SetUserAttribute updates a user's attributes in Keycloak using a manual API call
-// to bypass bugs in the gocloak library's UpdateUser function.
+// SetUserAttribute safely updates a user's attributes in Keycloak by performing a read-modify-write.
+// It first fetches the full user representation, updates the attributes, and then PUTs the entire object back.
+// This is done using manual API calls to bypass bugs in some versions of the gocloak library's UpdateUser function.
 func SetUserAttribute(ctx context.Context, adminAPIURL, realm, userID, adminAccessToken string, attributes map[string][]string) error {
-	url := fmt.Sprintf("%s/admin/realms/%s/users/%s", adminAPIURL, realm, userID)
+	userURL := fmt.Sprintf("%s/admin/realms/%s/users/%s", adminAPIURL, realm, userID)
 
-	payload := UserAttribute{
-		Attributes: attributes,
-	}
-
-	jsonPayload, err := json.Marshal(payload)
+	// 1. GET the full user representation
+	getReq, err := http.NewRequestWithContext(ctx, "GET", userURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to marshal user attribute payload: %w", err)
+		return fmt.Errorf("failed to create get user request: %w", err)
+	}
+	getReq.Header.Set("Authorization", "Bearer "+adminAccessToken)
+
+	getResp, err := http.DefaultClient.Do(getReq)
+	if err != nil {
+		return fmt.Errorf("failed to perform get user request: %w", err)
+	}
+	defer getResp.Body.Close()
+
+	if getResp.StatusCode != http.StatusOK {
+		return fmt.Errorf("get user failed with status %d", getResp.StatusCode)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(jsonPayload))
+	var userRepresentation map[string]interface{}
+	if err := json.NewDecoder(getResp.Body).Decode(&userRepresentation); err != nil {
+		return fmt.Errorf("failed to decode user representation: %w", err)
+	}
+
+	// 2. Modify the attributes
+	userRepresentation["attributes"] = attributes
+
+	// 3. PUT the full, modified user representation back
+	jsonPayload, err := json.Marshal(userRepresentation)
+	if err != nil {
+		return fmt.Errorf("failed to marshal updated user representation: %w", err)
+	}
+
+	putReq, err := http.NewRequestWithContext(ctx, "PUT", userURL, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return fmt.Errorf("failed to create set user attribute request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+adminAccessToken)
+	putReq.Header.Set("Content-Type", "application/json")
+	putReq.Header.Set("Authorization", "Bearer "+adminAccessToken)
 
-	resp, err := http.DefaultClient.Do(req)
+	putResp, err := http.DefaultClient.Do(putReq)
 	if err != nil {
 		return fmt.Errorf("failed to perform set user attribute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer putResp.Body.Close()
 
-	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+	if putResp.StatusCode != http.StatusNoContent && putResp.StatusCode != http.StatusOK {
 		var errResp map[string]interface{}
-		_ = json.NewDecoder(resp.Body).Decode(&errResp)
-		return fmt.Errorf("set user attribute failed with status %d: %v", resp.StatusCode, errResp)
+		_ = json.NewDecoder(putResp.Body).Decode(&errResp)
+		return fmt.Errorf("set user attribute failed with status %d: %v", putResp.StatusCode, errResp)
 	}
 
 	return nil
