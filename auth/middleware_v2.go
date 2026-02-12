@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	common_errors "github.com/hkinc45/dev-kitchen-go-common/errors"
 )
 
@@ -20,14 +19,16 @@ type CheckPermissionRequest struct {
 	SubjectToken string `json:"subject_token"`
 }
 
+// ResourceNameBuilder is a function that builds a resource name from the request context.
+type ResourceNameBuilder func(c *gin.Context) (string, error)
+
 // RequirePermissionV2 creates a Gin middleware that checks if a user has a specific permission for a dynamic resource.
 // It works by calling the internal `/v2/auth/check` endpoint in the auth-service.
 //
 // - httpClient: An authenticated HTTP client for service-to-service calls.
-// - resourcePrefix: The prefix for the resource name (e.g., "project-").
-// - paramName: The name of the URL parameter that contains the resource ID (e.g., "projectId").
+// - builder: A function that constructs the resource name to check (e.g., "project-123" or "user-secret-store-456").
 // - scope: The scope to check for (e.g., "project:read").
-func RequirePermissionV2(resolver ProjectResolver, httpClient *http.Client, resourcePrefix, paramName, scope string) gin.HandlerFunc {
+func RequirePermissionV2(httpClient *http.Client, builder ResourceNameBuilder, scope string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. Get auth service URL from environment
 		authServiceURL := os.Getenv("AUTH_SERVICE_URL")
@@ -46,26 +47,15 @@ func RequirePermissionV2(resolver ProjectResolver, httpClient *http.Client, reso
 		}
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 
-		// 3. Get resource ID from URL parameter and parse it
-		idStr := c.Param(paramName)
-		resourceUUID, err := uuid.Parse(idStr)
+		// 3. Build the resource name using the provided builder function
+		resourceName, err := builder(c)
 		if err != nil {
-			c.Error(common_errors.NewBadRequestError(fmt.Sprintf("invalid resource identifier format in URL parameter: %s", paramName)))
+			c.Error(common_errors.NewBadRequestError(fmt.Sprintf("failed to build resource name for permission check: %v", err)))
 			c.Abort()
 			return
 		}
 
-		// 4. Resolve the core service ID to the auth service ID using the provided resolver
-		resolvedProject, err := resolver.GetProjectByID(c.Request.Context(), resourceUUID)
-		if err != nil {
-			// This could be a not found error or a database error.
-			c.Error(err)
-			c.Abort()
-			return
-		}
-
-		// 5. Construct the request to the auth service using the CORRECT ID
-		resourceName := fmt.Sprintf("%s%s", resourcePrefix, resolvedProject.AuthServiceProjectID.String())
+		// 4. Construct the request to the auth service
 		checkReqPayload := CheckPermissionRequest{
 			Resource:     resourceName,
 			Scope:        scope,
@@ -103,10 +93,6 @@ func RequirePermissionV2(resolver ProjectResolver, httpClient *http.Client, reso
 			c.Next() // Permission granted
 		case http.StatusForbidden:
 			c.Error(common_errors.NewForbiddenError(fmt.Sprintf("missing required permission: %s on resource %s", scope, resourceName)))
-			c.Abort()
-		case http.StatusUnauthorized:
-			// This case should ideally not be hit with service-to-service auth, but is kept for robustness.
-			c.Error(common_errors.NewUnauthorizedError("service account is not authorized"))
 			c.Abort()
 		default:
 			c.Error(common_errors.NewInternalServerError(fmt.Sprintf("unexpected error from authentication service: status %d", resp.StatusCode)))
