@@ -51,6 +51,10 @@ var (
 
 // Helper functions for common errors
 
+func NewConflictError(message string) *APIError {
+	return NewAPIError(http.StatusConflict, message)
+}
+
 func NewBadRequestError(message string) *APIError {
 	return NewAPIError(http.StatusBadRequest, message)
 }
@@ -69,4 +73,20 @@ func NewForbiddenError(message string) *APIError {
 
 func NewInternalServerError(message string) *APIError {
 	return NewAPIError(http.StatusInternalServerError, "An unexpected internal error occurred")
+}
+
+func NewUnprocessableEntityError(message string) *APIError {
+	return NewAPIError(http.StatusUnprocessableEntity, message)
+}
+
+func NewBadGatewayError(message string) *APIError {
+	return NewAPIError(http.StatusBadGateway, message)
+}
+
+func NewServiceUnavailableError(message string) *APIError {
+	return NewAPIError(http.StatusServiceUnavailable, message)
+}
+
+func NewGatewayTimeoutError(message string) *APIError {
+	return NewAPIError(http.StatusGatewayTimeout, message)
 }

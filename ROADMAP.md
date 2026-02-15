@@ -13,3 +13,11 @@
 *   **Milestone 1.2: Deprecate Old Middleware**
     *   `[ ] Task 1.2.1:` Mark any older, less specific permission-checking middleware functions as deprecated.
     *   `[ ] Task 1.2.2:` Update the library's documentation to guide developers to exclusively use the new `RequirePermission` middleware for all authorization needs.
+
+## Phase 2: Architectural Improvements
+
+**Objective:** To enhance the resilience and production-readiness of shared libraries.
+
+*   **Task 2.1: Implement Exponential Backoff for NATS Workers**
+    *   **Status:** To Do
+    *   **Description:** Modify the `worker.go` library to replace the current fixed-delay `NakWithDelay` with a calculated exponential backoff. The delay should be calculated based on the message's `NumDelivered` metadata, providing a more robust and resilient retry mechanism for all consuming services.
