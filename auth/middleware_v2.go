@@ -14,21 +14,23 @@ import (
 
 // CheckPermissionRequest defines the structure for requests to the auth service's check endpoint.
 type CheckPermissionRequest struct {
-	Resource     string `json:"resource"`
+	ResourceType string `json:"resource_type"`
+	ResourceID   string `json:"resource_id"`
 	Scope        string `json:"scope"`
 	SubjectToken string `json:"subject_token"`
 }
 
-// ResourceNameBuilder is a function that builds a resource name from the request context.
-type ResourceNameBuilder func(c *gin.Context) (string, error)
+// ResourceIDExtractor is a function that extracts a resource's ID from the request context.
+type ResourceIDExtractor func(c *gin.Context) (string, error)
 
 // RequirePermissionV2 creates a Gin middleware that checks if a user has a specific permission for a dynamic resource.
 // It works by calling the internal `/v2/auth/check` endpoint in the auth-service.
 //
 // - httpClient: An authenticated HTTP client for service-to-service calls.
-// - builder: A function that constructs the resource name to check (e.g., "project-123" or "user-secret-store-456").
+// - resourceType: The type of resource being checked (e.g., "project", "recipe").
+// - idExtractor: A function that extracts the resource's ID from the Gin context.
 // - scope: The scope to check for (e.g., "project:read").
-func RequirePermissionV2(httpClient *http.Client, builder ResourceNameBuilder, scope string) gin.HandlerFunc {
+func RequirePermissionV2(httpClient *http.Client, resourceType string, idExtractor ResourceIDExtractor, scope string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. Get auth service URL from environment
 		authServiceURL := os.Getenv("AUTH_SERVICE_URL")
@@ -47,17 +49,18 @@ func RequirePermissionV2(httpClient *http.Client, builder ResourceNameBuilder, s
 		}
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 
-		// 3. Build the resource name using the provided builder function
-		resourceName, err := builder(c)
+		// 3. Extract the resource ID using the provided extractor function
+		resourceID, err := idExtractor(c)
 		if err != nil {
-			c.Error(common_errors.NewBadRequestError(fmt.Sprintf("failed to build resource name for permission check: %v", err)))
+			c.Error(common_errors.NewBadRequestError(fmt.Sprintf("failed to extract resource ID for permission check: %v", err)))
 			c.Abort()
 			return
 		}
 
 		// 4. Construct the request to the auth service
 		checkReqPayload := CheckPermissionRequest{
-			Resource:     resourceName,
+			ResourceType: resourceType,
+			ResourceID:   resourceID,
 			Scope:        scope,
 			SubjectToken: token,
 		}
@@ -92,7 +95,8 @@ func RequirePermissionV2(httpClient *http.Client, builder ResourceNameBuilder, s
 		case http.StatusOK:
 			c.Next() // Permission granted
 		case http.StatusForbidden:
-			c.Error(common_errors.NewForbiddenError(fmt.Sprintf("missing required permission: %s on resource %s", scope, resourceName)))
+			// The error message from the auth service is now more generic, so we create a specific one here.
+			c.Error(common_errors.NewForbiddenError(fmt.Sprintf("missing required permission: %s on resource %s:%s", scope, resourceType, resourceID)))
 			c.Abort()
 		default:
 			c.Error(common_errors.NewInternalServerError(fmt.Sprintf("unexpected error from authentication service: status %d", resp.StatusCode)))
