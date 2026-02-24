@@ -28,4 +28,7 @@ type User struct {
 	GiteaOrgName  *string             `json:"gitea_org_name,omitempty"`
 	Roles         []string            `json:"roles,omitempty"`
 	ProjectRoles  map[string][]string `json:"project_roles,omitempty"`
+	ProjectPermissions json.RawMessage `json:"project_permissions,omitempty" db:"project_permissions"`
+	SyncStatus    string      `json:"sync_status,omitempty" db:"sync_status"`
+	SyncLockedAt  *time.Time  `json:"sync_locked_at,omitempty" db:"sync_locked_at"`
 }

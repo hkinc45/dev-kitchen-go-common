@@ -67,3 +67,32 @@ func SetUserAttribute(ctx context.Context, adminAPIURL, realm, userID, adminAcce
 
 	return nil
 }
+
+// AreAttributesEqual compares two attribute maps to see if they are functionally identical.
+func AreAttributesEqual(a, b map[string][]string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for key, valA := range a {
+		valB, ok := b[key]
+		if !ok {
+			return false
+		}
+		if len(valA) != len(valB) {
+			return false
+		}
+		// Create maps for quick lookups, as order doesn't matter
+		mapA := make(map[string]struct{}, len(valA))
+		for _, v := range valA {
+			mapA[v] = struct{}{}
+		}
+		for _, v := range valB {
+			if _, found := mapA[v]; !found {
+				return false
+			}
+		}
+	}
+
+	return true
+}
