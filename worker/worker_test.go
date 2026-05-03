@@ -48,11 +48,11 @@ func TestProcessMessage(t *testing.T) {
 		ps.semaphore <- struct{}{}
 		handler.On("GetLockingKey", msg).Return("key1", nil).Once()
 		handler.On("Process", mock.Anything, msg).Return(nil).Once()
-		
-		// Note: We can't easily test Ack() without a real connection, 
+
+		// Note: We can't easily test Ack() without a real connection,
 		// but we can test that the handler is called.
 		ps.processMessage(msg)
-		
+
 		handler.AssertExpectations(t)
 	})
 }
@@ -67,7 +67,7 @@ func BenchmarkWorkerPool(b *testing.B) {
 	}
 	handler := ps.config.Handler.(*MockHandler)
 	msg := &nats.Msg{Subject: "test", Data: []byte("hello")}
-	
+
 	handler.On("GetLockingKey", mock.Anything).Return("", nil)
 	handler.On("Process", mock.Anything, mock.Anything).Return(nil)
 
