@@ -2,6 +2,20 @@
 
 This repository contains common Go libraries shared across the Dev Kitchen microservices ecosystem.
 
+## Verified Expert Patterns (Go 1.21+)
+
+### Error Handling
+- **Structured Wrapping:** Use `APIError` with `NewAPIErrorWrap` to support standard library error wrapping (`Unwrap() error`). This enables deep error inspection using `errors.Is` and `errors.As`.
+
+### Structured Logging (slog)
+- **Standardized Observability:** All common modules (`auth`, `worker`) use `log/slog` for structured, zero-dependency logging.
+- **Contextual Fields:** Logs automatically include high-signal fields like `resource_type`, `id`, and `scope` to facilitate distributed tracing.
+
+### Worker & Concurrency
+- **Concurrent Pull Subscription:** Uses NATS JetStream with a bounded worker pool for predictable resource usage.
+- **Key-Based Locking:** Implements sequential processing for the same resource key while maintaining high global parallelism.
+- **Explicit Cancellation:** All workers respect context timeouts and cancellation signals.
+
 ## Packages
 
 ### `auth`

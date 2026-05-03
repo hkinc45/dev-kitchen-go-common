@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -35,6 +36,7 @@ func RequirePermissionV2(httpClient *http.Client, resourceType string, idExtract
 		// 1. Get auth service URL from environment
 		authServiceURL := os.Getenv("AUTH_SERVICE_URL")
 		if authServiceURL == "" {
+			slog.Error("misconfigured authentication service URL", "service", "go-common-auth")
 			c.Error(common_errors.NewInternalServerError("misconfigured authentication service URL"))
 			c.Abort()
 			return
@@ -43,6 +45,7 @@ func RequirePermissionV2(httpClient *http.Client, resourceType string, idExtract
 		// 2. Get the raw user token from the Authorization header.
 		authHeader := c.GetHeader("Authorization")
 		if !strings.HasPrefix(authHeader, "Bearer ") {
+			slog.Warn("authorization header missing or invalid", "header", authHeader)
 			c.Error(common_errors.NewUnauthorizedError("authorization header missing or improperly formatted"))
 			c.Abort()
 			return
@@ -52,6 +55,7 @@ func RequirePermissionV2(httpClient *http.Client, resourceType string, idExtract
 		// 3. Extract the resource ID using the provided extractor function
 		resourceID, err := idExtractor(c)
 		if err != nil {
+			slog.Error("failed to extract resource ID", "error", err, "resource_type", resourceType)
 			c.Error(common_errors.NewBadRequestError(fmt.Sprintf("failed to extract resource ID for permission check: %v", err)))
 			c.Abort()
 			return
@@ -67,6 +71,7 @@ func RequirePermissionV2(httpClient *http.Client, resourceType string, idExtract
 
 		payloadBytes, err := json.Marshal(checkReqPayload)
 		if err != nil {
+			slog.Error("failed to construct permission check request", "error", err)
 			c.Error(common_errors.NewInternalServerError("failed to construct permission check request"))
 			c.Abort()
 			return
@@ -76,6 +81,7 @@ func RequirePermissionV2(httpClient *http.Client, resourceType string, idExtract
 		checkURL := fmt.Sprintf("%s/internal/v2/auth/check", authServiceURL)
 		req, err := http.NewRequestWithContext(c.Request.Context(), "POST", checkURL, bytes.NewBuffer(payloadBytes))
 		if err != nil {
+			slog.Error("failed to create request object", "error", err)
 			c.Error(common_errors.NewInternalServerError("failed to create permission check request"))
 			c.Abort()
 			return
@@ -84,6 +90,7 @@ func RequirePermissionV2(httpClient *http.Client, resourceType string, idExtract
 
 		resp, err := httpClient.Do(req)
 		if err != nil {
+			slog.Error("failed to communicate with auth service", "error", err, "url", checkURL)
 			c.Error(common_errors.NewInternalServerError("failed to communicate with authentication service"))
 			c.Abort()
 			return
@@ -93,12 +100,15 @@ func RequirePermissionV2(httpClient *http.Client, resourceType string, idExtract
 		// 6. Handle the response
 		switch resp.StatusCode {
 		case http.StatusOK:
+			slog.Info("permission granted", "resource", resourceType, "id", resourceID, "scope", scope)
 			c.Next() // Permission granted
 		case http.StatusForbidden:
+			slog.Warn("permission denied", "resource", resourceType, "id", resourceID, "scope", scope)
 			// The error message from the auth service is now more generic, so we create a specific one here.
 			c.Error(common_errors.NewForbiddenError(fmt.Sprintf("missing required permission: %s on resource %s:%s", scope, resourceType, resourceID)))
 			c.Abort()
 		default:
+			slog.Error("unexpected status code from auth service", "status", resp.StatusCode)
 			c.Error(common_errors.NewInternalServerError(fmt.Sprintf("unexpected error from authentication service: status %d", resp.StatusCode)))
 			c.Abort()
 		}

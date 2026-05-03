@@ -11,16 +11,32 @@ import (
 type APIError struct {
 	StatusCode int    `json:"status_code"`
 	Message    string `json:"error"`
+	Err        error  `json:"-"`
 }
 
 func (e *APIError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("API error: status code %d, message: %s: %v", e.StatusCode, e.Message, e.Err)
+	}
 	return fmt.Sprintf("API error: status code %d, message: %s", e.StatusCode, e.Message)
+}
+
+func (e *APIError) Unwrap() error {
+	return e.Err
 }
 
 func NewAPIError(statusCode int, message string) *APIError {
 	return &APIError{
 		StatusCode: statusCode,
 		Message:    message,
+	}
+}
+
+func NewAPIErrorWrap(statusCode int, message string, err error) *APIError {
+	return &APIError{
+		StatusCode: statusCode,
+		Message:    message,
+		Err:        err,
 	}
 }
 

@@ -3,7 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -82,7 +82,7 @@ func NewPullSubscriber(cfg Config) (*PullSubscriber, error) {
 
 	go ps.startDispatcher()
 
-	log.Printf("Successfully started concurrent subscriber for subject '%s' with durable name '%s'", cfg.Subject, cfg.DurableName)
+	slog.Info("successfully started concurrent subscriber", "subject", cfg.Subject, "durable_name", cfg.DurableName)
 	return ps, nil
 }
 
@@ -101,7 +101,7 @@ func (ps *PullSubscriber) startDispatcher() {
 			if err == nats.ErrTimeout {
 				continue
 			}
-			log.Printf("ERROR: Failed to fetch messages for subject %s: %v", ps.config.Subject, err)
+			slog.Error("failed to fetch messages", "error", err, "subject", ps.config.Subject)
 			time.Sleep(5 * time.Second)
 			continue
 		}
@@ -121,7 +121,7 @@ func (ps *PullSubscriber) processMessage(msg *nats.Msg) {
 
 	lockingKey, err := ps.config.Handler.GetLockingKey(msg)
 	if err != nil {
-		log.Printf("ERROR: Failed to get locking key for message on subject %s: %v. Naking message.", msg.Subject, err)
+		slog.Error("failed to get locking key", "error", err, "subject", msg.Subject)
 		_ = msg.NakWithDelay(5 * time.Second)
 		return
 	}
@@ -133,20 +133,20 @@ func (ps *PullSubscriber) processMessage(msg *nats.Msg) {
 		defer keyMutex.Unlock()
 	}
 
-	log.Printf("Processing message on subject %s with key '%s'", msg.Subject, lockingKey)
+	slog.Info("processing message", "subject", msg.Subject, "key", lockingKey)
 
 	// Create a context for the handler
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute) // 5-minute timeout per message
 	defer cancel()
 
 	if err := ps.config.Handler.Process(ctx, msg); err != nil {
-		log.Printf("ERROR: Handler failed to process message on subject %s: %v. Naking message.", msg.Subject, err)
+		slog.Error("handler failed to process message", "error", err, "subject", msg.Subject, "key", lockingKey)
 		_ = msg.NakWithDelay(15 * time.Second) // Nak with a longer delay on processing failure
 	} else {
 		if err := msg.Ack(); err != nil {
-			log.Printf("ERROR: Failed to ACK message on subject %s: %v", msg.Subject, err)
+			slog.Error("failed to ACK message", "error", err, "subject", msg.Subject)
 		} else {
-			log.Printf("Successfully processed and ACKed message on subject %s with key '%s'", msg.Subject, lockingKey)
+			slog.Info("successfully processed and ACKed message", "subject", msg.Subject, "key", lockingKey)
 		}
 	}
 }
@@ -183,7 +183,7 @@ func (ps *PullSubscriber) Stop() {
 	ps.active = false
 	// Unsubscribe to stop receiving new messages
 	if err := ps.sub.Unsubscribe(); err != nil {
-		log.Printf("WARN: Error during unsubscribe for subject %s: %v", ps.config.Subject, err)
+		slog.Warn("error during unsubscribe", "error", err, "subject", ps.config.Subject)
 	}
-	log.Printf("Stopped subscriber for subject '%s'", ps.config.Subject)
+	slog.Info("stopped subscriber", "subject", ps.config.Subject)
 }
