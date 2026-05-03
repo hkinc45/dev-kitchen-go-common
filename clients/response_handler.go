@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/hkinc45/dev-kitchen-go-common/errors"
@@ -18,11 +18,11 @@ func HandleResponse(resp *http.Response, successBody interface{}) error {
 		// Read the full body to log it for debugging non-2xx responses.
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Printf("Error reading non-2xx response body: %v", err)
+			slog.Error("Error reading non-2xx response body", "err", err)
 			return errors.NewAPIError(resp.StatusCode, "failed to read error response body")
 		}
 		// Log the detailed error response.
-		log.Printf("Downstream service returned non-2xx response. Status: %d, Body: %s", resp.StatusCode, string(bodyBytes))
+		slog.Warn("Downstream service returned non-2xx response", "status", resp.StatusCode, "body", string(bodyBytes))
 
 		// Replace the response body with a new reader so it can be read again by the JSON decoder.
 		resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))

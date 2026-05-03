@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -50,20 +50,20 @@ func (m *Middleware) UserAuth() gin.HandlerFunc {
 
 		idToken, err := m.Verifier.Verify(c.Request.Context(), tokenString)
 		if err != nil {
-			log.Printf("ERROR: Token verification failed: %v", err)
+			slog.Error("Token verification failed", "err", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token: " + err.Error()})
 			return
 		}
 
 		var claims map[string]interface{}
 		if err := idToken.Claims(&claims); err != nil {
-			log.Printf("ERROR: Failed to extract claims from token: %v", err)
+			slog.Error("Failed to extract claims from token", "err", err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to extract claims from token"})
 			return
 		}
 
 		if !m.isAudienceValid(claims) {
-			log.Printf("ERROR: Token audience validation failed. Expected '%s' in audience %v", m.ClientID, claims["aud"])
+			slog.Error("Token audience validation failed", "expected", m.ClientID, "actual", claims["aud"])
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Token not valid for this service"})
 			return
 		}
@@ -72,7 +72,7 @@ func (m *Middleware) UserAuth() gin.HandlerFunc {
 		// This ensures the user exists in the auth-service DB and we get the canonical Application ID.
 		user, err := m.jitProvisionUser(c.Request.Context(), authHeader)
 		if err != nil {
-			log.Printf("ERROR: JIT provisioning failed: %v", err)
+			slog.Error("JIT provisioning failed", "err", err)
 			c.AbortWithStatusJSON(http.StatusFailedDependency, gin.H{"error": "Failed to retrieve user profile from auth service"})
 			return
 		}
@@ -80,7 +80,7 @@ func (m *Middleware) UserAuth() gin.HandlerFunc {
 		// Set the full user object in the context.
 		c.Set("user", user)
 
-		log.Println("User token validated and user object set successfully.")
+		slog.Info("User token validated and user object set successfully.")
 		c.Next()
 	}
 }
@@ -127,27 +127,27 @@ func (m *Middleware) ServiceAuth() gin.HandlerFunc {
 
 		idToken, err := m.Verifier.Verify(c.Request.Context(), tokenString)
 		if err != nil {
-			log.Printf("ERROR: Token verification failed: %v", err)
+			slog.Error("Token verification failed", "err", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token: " + err.Error()})
 			return
 		}
 
 		var claims map[string]interface{}
 		if err := idToken.Claims(&claims); err != nil {
-			log.Printf("ERROR: Failed to extract claims from token: %v", err)
+			slog.Error("Failed to extract claims from token", "err", err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to extract claims from token"})
 			return
 		}
 
 		// For service tokens, we check for the 'internal-comm' role.
 		if !m.hasInternalCommRole(claims) {
-			log.Printf("ERROR: Service token is missing 'internal-comm' role.")
+			slog.Error("Service token is missing 'internal-comm' role.")
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied: internal-comm role required"})
 			return
 		}
 
 		azp, _ := claims["azp"].(string)
-		log.Printf("Service token from '%s' validated successfully.", azp)
+		slog.Info("Service token validated successfully", "from", azp)
 		c.Next()
 	}
 }
