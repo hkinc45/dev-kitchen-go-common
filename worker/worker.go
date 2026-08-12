@@ -19,6 +19,8 @@ type Config struct {
 	MaxConcurrent int
 	MaxWait       time.Duration
 	BaseDelay     time.Duration
+	MaxDeliver    int
+	MaxDelay      time.Duration
 	Handler       Handler
 	JetStream     nats.JetStreamContext
 }
@@ -56,12 +58,17 @@ func NewPullSubscriber(cfg Config) (*PullSubscriber, error) {
 		cfg.MaxWait = 30 * time.Second
 	}
 
+	maxDeliver := cfg.MaxDeliver
+	if maxDeliver <= 0 {
+		maxDeliver = 5 // default
+	}
+
 	// Create the JetStream consumer
 	_, err := cfg.JetStream.AddConsumer(cfg.StreamName, &nats.ConsumerConfig{
 		Durable:       cfg.DurableName,
 		AckPolicy:     nats.AckExplicitPolicy,
 		FilterSubject: cfg.Subject,
-		MaxDeliver:    5, // This is a reasonable default
+		MaxDeliver:    maxDeliver,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create consumer for subject %s: %w", cfg.Subject, err)
@@ -163,7 +170,10 @@ func (ps *PullSubscriber) processMessage(msg *nats.Msg) {
 			factor = uint64(1) << shift
 		}
 		delay := baseDelay * time.Duration(factor)
-		maxDelay := 1 * time.Minute
+		maxDelay := ps.config.MaxDelay
+		if maxDelay == 0 {
+			maxDelay = 1 * time.Minute
+		}
 		if delay > maxDelay {
 			delay = maxDelay
 		}
