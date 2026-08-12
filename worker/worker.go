@@ -18,6 +18,7 @@ type Config struct {
 	BatchSize     int
 	MaxConcurrent int
 	MaxWait       time.Duration
+	BaseDelay     time.Duration
 	Handler       Handler
 	JetStream     nats.JetStreamContext
 }
@@ -141,7 +142,33 @@ func (ps *PullSubscriber) processMessage(msg *nats.Msg) {
 
 	if err := ps.config.Handler.Process(ctx, msg); err != nil {
 		slog.Error("handler failed to process message", "error", err, "subject", msg.Subject, "key", lockingKey)
-		_ = msg.NakWithDelay(15 * time.Second) // Nak with a longer delay on processing failure
+		
+		baseDelay := ps.config.BaseDelay
+		if baseDelay == 0 {
+			baseDelay = 5 * time.Second
+		}
+
+		var numDelivered uint64 = 1
+		meta, err := msg.Metadata()
+		if err == nil && meta != nil {
+			numDelivered = meta.NumDelivered
+		}
+
+		factor := uint64(1)
+		if numDelivered > 1 {
+			shift := numDelivered - 1
+			if shift > 30 {
+				shift = 30
+			}
+			factor = uint64(1) << shift
+		}
+		delay := baseDelay * time.Duration(factor)
+		maxDelay := 1 * time.Minute
+		if delay > maxDelay {
+			delay = maxDelay
+		}
+
+		_ = msg.NakWithDelay(delay)
 	} else {
 		if err := msg.Ack(); err != nil {
 			slog.Error("failed to ACK message", "error", err, "subject", msg.Subject)

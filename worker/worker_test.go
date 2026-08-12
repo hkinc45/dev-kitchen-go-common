@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
@@ -51,6 +52,16 @@ func TestProcessMessage(t *testing.T) {
 
 		// Note: We can't easily test Ack() without a real connection,
 		// but we can test that the handler is called.
+		ps.processMessage(msg)
+
+		handler.AssertExpectations(t)
+	})
+
+	t.Run("Failed Processing", func(t *testing.T) {
+		ps.semaphore <- struct{}{}
+		handler.On("GetLockingKey", msg).Return("key2", nil).Once()
+		handler.On("Process", mock.Anything, msg).Return(errors.New("transient error")).Once()
+
 		ps.processMessage(msg)
 
 		handler.AssertExpectations(t)
