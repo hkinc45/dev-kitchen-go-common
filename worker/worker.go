@@ -64,7 +64,7 @@ func NewPullSubscriber(cfg Config) (*PullSubscriber, error) {
 	}
 
 	// Create the JetStream consumer
-	_, err = cfg.JetStream.AddConsumer(cfg.StreamName, &nats.ConsumerConfig{
+	_, err := cfg.JetStream.AddConsumer(cfg.StreamName, &nats.ConsumerConfig{
 		Durable:       cfg.DurableName,
 		AckPolicy:     nats.AckExplicitPolicy,
 		FilterSubject: cfg.Subject,
