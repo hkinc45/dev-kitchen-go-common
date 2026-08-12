@@ -64,14 +64,24 @@ func NewPullSubscriber(cfg Config) (*PullSubscriber, error) {
 	}
 
 	// Create the JetStream consumer
-	_, err := cfg.JetStream.AddConsumer(cfg.StreamName, &nats.ConsumerConfig{
+	_, err = cfg.JetStream.AddConsumer(cfg.StreamName, &nats.ConsumerConfig{
 		Durable:       cfg.DurableName,
 		AckPolicy:     nats.AckExplicitPolicy,
 		FilterSubject: cfg.Subject,
 		MaxDeliver:    maxDeliver,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create consumer for subject %s: %w", cfg.Subject, err)
+		// Attempt to recreate the consumer if config differs
+		_ = cfg.JetStream.DeleteConsumer(cfg.StreamName, cfg.DurableName)
+		_, err = cfg.JetStream.AddConsumer(cfg.StreamName, &nats.ConsumerConfig{
+			Durable:       cfg.DurableName,
+			AckPolicy:     nats.AckExplicitPolicy,
+			FilterSubject: cfg.Subject,
+			MaxDeliver:    maxDeliver,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create consumer for subject %s: %w", cfg.Subject, err)
+		}
 	}
 
 	// Create the pull subscription
