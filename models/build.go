@@ -30,12 +30,16 @@ const (
 
 // BuildInfo contains Gitea Actions CI pipeline workflow run metadata.
 type BuildInfo struct {
-	WorkflowRunID int64      `json:"workflow_run_id"`
-	CommitSHA     string     `json:"commit_sha"`
-	Status        string     `json:"status"`
-	Conclusion    string     `json:"conclusion"`
-	Duration      string     `json:"duration"`
-	HTMLURL       string     `json:"html_url"`
-	CreatedAt     *time.Time `json:"created_at,omitempty"`
-	UpdatedAt     *time.Time `json:"updated_at,omitempty"`
+	WorkflowRunID       int64      `json:"workflow_run_id"`
+	CommitSHA           string     `json:"commit_sha"`
+	Status              string     `json:"status"`
+	Conclusion          string     `json:"conclusion"`
+	Duration            string     `json:"duration"`
+	HTMLURL             string     `json:"html_url"`
+	CreatedAt           *time.Time `json:"created_at,omitempty"`
+	UpdatedAt           *time.Time `json:"updated_at,omitempty"`
+	LatestCIRunID       int64      `json:"latest_ci_run_id,omitempty"`
+	LatestBuildImage    string     `json:"latest_build_image,omitempty"`
+	LatestBuildStatus   string     `json:"latest_build_status,omitempty"`
+	LatestBuildDuration string     `json:"latest_build_duration,omitempty"`
 }
