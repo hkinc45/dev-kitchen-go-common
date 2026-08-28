@@ -18,6 +18,7 @@ type Recipe struct {
 	ManifestRepoURL       *string         `json:"manifest_repo_url,omitempty" db:"manifest_repo_url"`
 	Status                string          `json:"status" db:"status"`
 	RegionID              *uuid.UUID      `json:"region_id,omitempty" db:"region_id"`
+	RegionName            *string         `json:"region,omitempty" db:"region_name"`
 	WorkloadType          *string         `json:"workload_type,omitempty" db:"workload_type"`
 	SourceType            string          `json:"source_type" db:"source_type"`
 	Configuration         json.RawMessage `json:"configuration,omitempty" db:"configuration"`
@@ -43,4 +44,107 @@ type Recipe struct {
 	LatestBuildDuration   string          `json:"latest_build_duration,omitempty" db:"latest_build_duration"`
 	CreatedAt             time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt             time.Time       `json:"updated_at" db:"updated_at"`
+}
+
+// DisplayRecipe represents an enriched recipe struct with live telemetry.
+type DisplayRecipe struct {
+	Recipe
+	SyncStatus      string          `json:"sync_status"`
+	HealthStatus    string          `json:"health_status"`
+	BuildStatus     string          `json:"build_status"`
+	BuildInfo       *BuildInfo      `json:"build_info,omitempty"`
+	ProvisionStatus string          `json:"provision_status"`
+	CompositeStatus string          `json:"composite_status"`
+	ServingDishes   []ServingDish   `json:"serving_dishes"`
+	ServingCounters []ServingCounter `json:"serving_counters"`
+	Pantries        []Pantry        `json:"pantries"`
+	RecipeCards     []RecipeCard    `json:"recipe_cards"`
+	SecretSpices    []SecretSpice   `json:"secret_spices"`
+	CustomDomains   []CustomDomain  `json:"custom_domains"`
+	ResourceTree    *ResourceTree   `json:"resource_tree,omitempty"`
+}
+
+type ServingDish struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Status   string `json:"status"`
+	CPU      string `json:"cpu"`
+	Memory   string `json:"memory"`
+	Restarts int    `json:"restarts"`
+}
+
+type ServingCounter struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Type   string `json:"type"`
+	Ports  string `json:"ports"`
+	Public bool   `json:"public"`
+}
+
+type Pantry struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Size   string `json:"size"`
+	Status string `json:"status"`
+}
+
+type RecipeCard struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	DataType string `json:"dataType"`
+	Keys     int    `json:"keys"`
+}
+
+type SecretSpice struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+	Keys int    `json:"keys"`
+}
+
+type CustomDomain struct {
+	ID        string `json:"id"`
+	Hostname  string `json:"hostname"`
+	SSLStatus string `json:"sslStatus"`
+}
+
+type ResourceTree struct {
+	Nodes []ResourceNode `json:"nodes"`
+}
+
+type ResourceNode struct {
+	Group      string      `json:"group"`
+	Version    string      `json:"version"`
+	Kind       string      `json:"kind"`
+	Name       string      `json:"name"`
+	Namespace  string      `json:"namespace"`
+	CreatedAt  string      `json:"createdAt,omitempty"`
+	Health     *HealthInfo `json:"health,omitempty"`
+	ParentRefs []ParentRef `json:"parentRefs,omitempty"`
+	Info       []InfoItem  `json:"info,omitempty"`
+}
+
+type HealthInfo struct {
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
+}
+
+type ParentRef struct {
+	Group     string `json:"group"`
+	Kind      string `json:"kind"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+}
+
+type InfoItem struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type NetworkPolicyRule struct {
+	Name            string   `json:"name"`
+	SecurityProfile string   `json:"security_profile"`
+	IngressPolicy   string   `json:"ingress_policy"`
+	EgressPolicy    string   `json:"egress_policy"`
+	AllowedPorts    []string `json:"allowed_ports"`
 }
