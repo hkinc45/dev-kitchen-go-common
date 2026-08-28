@@ -157,7 +157,25 @@ func (ps *PullSubscriber) processMessage(msg *nats.Msg) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute) // 5-minute timeout per message
 	defer cancel()
 
-	if err := ps.config.Handler.Process(ctx, msg); err != nil {
+	// Start in-progress heartbeats to prevent NATS JetStream AckWait timeouts while processing
+	heartbeatDone := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				_ = msg.InProgress()
+			case <-heartbeatDone:
+				return
+			}
+		}
+	}()
+
+	err = ps.config.Handler.Process(ctx, msg)
+	close(heartbeatDone)
+
+	if err != nil {
 		slog.Error("handler failed to process message", "error", err, "subject", msg.Subject, "key", lockingKey)
 		
 		baseDelay := ps.config.BaseDelay
