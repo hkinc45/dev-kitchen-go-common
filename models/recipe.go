@@ -34,6 +34,7 @@ type Recipe struct {
 	InstallCommand        *string         `json:"install_command,omitempty" db:"install_command"`
 	BuildCommand          *string         `json:"build_command,omitempty" db:"build_command"`
 	StartCommand          *string         `json:"start_command,omitempty" db:"start_command"`
+	InitCommand           *string         `json:"init_command,omitempty" db:"init_command"`
 	AppCommand            []string        `json:"app_command,omitempty" db:"app_command"`
 	AppArgs               []string        `json:"app_args,omitempty" db:"app_args"`
 	Branch                *string         `json:"branch,omitempty" db:"branch"`
