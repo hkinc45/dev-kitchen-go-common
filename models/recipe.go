@@ -27,6 +27,14 @@ type Recipe struct {
 	BuildContext          *string         `json:"build_context,omitempty" db:"build_context"`
 	PathTriggersOverride  *string         `json:"path_triggers_override,omitempty" db:"path_triggers_override"`
 	ContainerPort         *int            `json:"container_port,omitempty" db:"container_port"`
+	Language              *string         `json:"language,omitempty" db:"language"`
+	LanguageVersion       *string         `json:"language_version,omitempty" db:"language_version"`
+	Framework             *string         `json:"framework,omitempty" db:"framework"`
+	PackageManager        *string         `json:"package_manager,omitempty" db:"package_manager"`
+	InstallCommand        *string         `json:"install_command,omitempty" db:"install_command"`
+	BuildCommand          *string         `json:"build_command,omitempty" db:"build_command"`
+	StartCommand          *string         `json:"start_command,omitempty" db:"start_command"`
+	InitCommand           *string         `json:"init_command,omitempty" db:"init_command"`
 	AppCommand            []string        `json:"app_command,omitempty" db:"app_command"`
 	AppArgs               []string        `json:"app_args,omitempty" db:"app_args"`
 	Branch                *string         `json:"branch,omitempty" db:"branch"`
