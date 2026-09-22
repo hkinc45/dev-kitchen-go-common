@@ -1,5 +1,20 @@
 # Development Log
 
+## Session: September 18, 2026
+
+*   **Feature: Canonical Dev Kitchen Metadata & Label Standardization**
+    *   **Goal:** Establish a single source of truth for platform workload metadata and eliminate legacy double-labeling.
+    *   **Implementation:**
+        *   Created package `metadata` (`metadata/labels.go`) exporting canonical constants:
+            *   `LabelOwnerID` (`dev.kitchen/owner-id`)
+            *   `LabelProjectName` (`dev.kitchen/project-name`)
+            *   `LabelRecipeID` (`dev.kitchen/recipe-id`)
+            *   `LabelRecipeName` (`dev.kitchen/recipe-name`)
+            *   Matching `Annotation*` constants.
+        *   Implemented `PlatformMetadata` struct with `StandardLabels()` and `StandardAnnotations()` helpers.
+        *   Added `IsLegacyLabel` to detect and filter deprecated un-prefixed labels (`owner-id`, `project-name`, `recipe-id`, `recipe-name`).
+        *   Added unit tests in `metadata/labels_test.go` with 100% pass rate.
+
 ## Session: October 23, 2025
 
 *   **Feature: Improved Error Handling**
