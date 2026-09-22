@@ -1,5 +1,15 @@
 # Development Log
 
+## Session: September 22, 2026
+
+*   **Feature: Universal Resource Attachment Data Model & Validation (Milestone 25)**
+    *   **Goal:** Establish shared data structures, alias projection mappings, and contract validation for repository recipe resource attachments.
+    *   **Implementation:**
+        *   Extended `types/recipe.go` with `ResourceAttachment` struct, including fields `ID`, `RecipeID`, `AttachedRecipeID`, `AliasMapping`, and metadata timestamps.
+        *   Defined validation methods for alias mapping keys, ensuring alphanumeric variable identifiers conforming to standard POSIX environment variable naming rules without collisions with reserved platform environment variables.
+        *   Tagged and released `v0.5.27`.
+    *   **Verification:** Ran `go test ./...` with 100% pass rate.
+
 ## Session: September 18, 2026
 
 *   **Feature: Canonical Dev Kitchen Metadata & Label Standardization**
