@@ -49,9 +49,21 @@ type Recipe struct {
 	LatestCIRunID         int64           `json:"latest_ci_run_id,omitempty" db:"latest_ci_run_id"`
 	LatestBuildImage      string          `json:"latest_build_image,omitempty" db:"latest_build_image"`
 	LatestBuildStatus     string          `json:"latest_build_status,omitempty" db:"latest_build_status"`
-	LatestBuildDuration   string          `json:"latest_build_duration,omitempty" db:"latest_build_duration"`
-	CreatedAt             time.Time       `json:"created_at" db:"created_at"`
-	UpdatedAt             time.Time       `json:"updated_at" db:"updated_at"`
+	LatestBuildDuration   string               `json:"latest_build_duration,omitempty" db:"latest_build_duration"`
+	ResourceAttachments   []ResourceAttachment `json:"resource_attachments,omitempty" db:"-"`
+	CreatedAt             time.Time            `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time            `json:"updated_at" db:"updated_at"`
+}
+
+// ResourceAttachment represents a dynamic resource binding (e.g. database, cache) for repository recipes.
+type ResourceAttachment struct {
+	ID                string            `json:"id"`
+	RecipeID          uuid.UUID         `json:"recipe_id"`
+	RecipeName        string            `json:"recipe_name"`
+	Type              string            `json:"type"`   // "database" | "cache"
+	Engine            string            `json:"engine"` // "postgresql", "mysql", "mariadb", "redis"
+	Aliases           map[string]string `json:"aliases"`
+	EnvironmentPrefix string            `json:"environment_prefix,omitempty"`
 }
 
 // DisplayRecipe represents an enriched recipe struct with live telemetry.
