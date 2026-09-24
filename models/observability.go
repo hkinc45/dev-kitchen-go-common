@@ -31,6 +31,8 @@ type DeploymentIssueEvent struct {
 // measured directly from the Kubernetes Metrics Server.
 type ContainerMetricTelemetry struct {
 	ContainerName        string    `json:"container_name"`
+	PodName              string    `json:"pod_name,omitempty"`
+	WorkloadName         string    `json:"workload_name,omitempty"`
 	CPUUsageMillicores   int64     `json:"cpu_usage_millicores"`
 	CPURequestMillicores int64     `json:"cpu_request_millicores"`
 	CPULimitMillicores   int64     `json:"cpu_limit_millicores"`
@@ -53,9 +55,27 @@ type CIBuildLogResponse struct {
 
 // LogStreamRequest defines parameters for streaming Kubernetes Pod logs via SSE.
 type LogStreamRequest struct {
+	Pod        string `form:"pod" json:"pod"`
 	Container  string `form:"container" json:"container"`
 	TailLines  int64  `form:"tail_lines" json:"tail_lines"`
 	Follow     bool   `form:"follow" json:"follow"`
 	Timestamps bool   `form:"timestamps" json:"timestamps"`
 	Previous   bool   `form:"previous" json:"previous"`
+}
+
+// RecipeContainerInfo describes an individual container (app, init, or sidecar) running in a pod.
+type RecipeContainerInfo struct {
+	Name         string `json:"name"`
+	Type         string `json:"type"` // "main" | "init" | "sidecar"
+	Ready        bool   `json:"ready"`
+	RestartCount int32  `json:"restart_count"`
+	State        string `json:"state"` // "running" | "waiting" | "terminated"
+}
+
+// RecipeWorkloadPod represents an active Kubernetes pod belonging to a recipe.
+type RecipeWorkloadPod struct {
+	WorkloadName string                `json:"workload_name"`
+	PodName      string                `json:"pod_name"`
+	Phase        string                `json:"phase"`
+	Containers   []RecipeContainerInfo `json:"containers"`
 }
