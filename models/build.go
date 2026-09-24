@@ -39,6 +39,7 @@ type BuildInfo struct {
 	CreatedAt           *time.Time `json:"created_at,omitempty"`
 	UpdatedAt           *time.Time `json:"updated_at,omitempty"`
 	LatestCIRunID       int64      `json:"latest_ci_run_id,omitempty"`
+	LatestCIJobID       int64      `json:"latest_ci_job_id,omitempty"`
 	LatestBuildImage    string     `json:"latest_build_image,omitempty"`
 	LatestBuildStatus   string     `json:"latest_build_status,omitempty"`
 	LatestBuildDuration string     `json:"latest_build_duration,omitempty"`

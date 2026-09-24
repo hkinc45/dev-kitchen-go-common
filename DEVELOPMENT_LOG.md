@@ -1,5 +1,19 @@
 # Development Log
 
+## Session: September 24, 2026
+
+*   **Feature: Ephemeral Observability & Telemetry Shared Models (Milestone 28)**
+    *   **Goal:** Establish canonical shared data models for live container log streaming, CI build logs, deployment warning events, instantaneous container metrics, and workload container discovery across services.
+    *   **Implementation:**
+        *   Created `models/observability.go`:
+            *   `CIBuildLogStep`, `CIBuildLogResponse` for Gitea Actions step execution logs.
+            *   `DeploymentIssueEvent` for ArgoCD sync failures and Kubernetes warning events.
+            *   `ContainerMetricTelemetry` for real-time CPU millicores and memory MiB usage.
+            *   `LogStreamRequest` for SSE streaming options (`Pod`, `Container`, `TailLines`, `Timestamps`, `Follow`, `Previous`).
+            *   `RecipeWorkloadPod`, `RecipeContainerInfo` for multi-workload pod discovery and categorized container listing (`main`, `init`, `sidecar`) with restart counters.
+        *   Updated `models/recipe.go` and `models/build.go` to include `LatestBuildJobID` and `LatestBuildRunID`.
+    *   **Verification:** Verified Go tests with `go test ./...` passing cleanly.
+
 ## Session: September 22, 2026
 
 *   **Feature: Universal Resource Attachment Data Model & Validation (Milestone 25)**

@@ -47,6 +47,7 @@ type Recipe struct {
 	GiteaCommitAuthor     *string         `json:"gitea_commit_author,omitempty" db:"gitea_commit_author"`
 	GiteaCommitTimestamp  *time.Time      `json:"gitea_commit_timestamp,omitempty" db:"gitea_commit_timestamp"`
 	LatestCIRunID         int64           `json:"latest_ci_run_id,omitempty" db:"latest_ci_run_id"`
+	LatestCIJobID         int64           `json:"latest_ci_job_id,omitempty" db:"latest_ci_job_id"`
 	LatestBuildImage      string          `json:"latest_build_image,omitempty" db:"latest_build_image"`
 	LatestBuildStatus     string          `json:"latest_build_status,omitempty" db:"latest_build_status"`
 	LatestBuildDuration   string               `json:"latest_build_duration,omitempty" db:"latest_build_duration"`
