@@ -8,4 +8,6 @@ const (
 	VCSConnection   = "vcs-connection"
 	Admin           = "admin"
 	BillingAccount  = "billing-account"
+	Budget          = "budget"
+	Invoice         = "invoice"
 )
