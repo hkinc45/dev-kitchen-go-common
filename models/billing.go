@@ -16,10 +16,13 @@ type BillingAccount struct {
 	TaxID         *string         `json:"tax_id,omitempty" db:"tax_id"`
 	BillingEmail  string          `json:"billing_email" db:"billing_email"`
 	Address       json.RawMessage `json:"address,omitempty" db:"address"`
-	PricingPlanID *uuid.UUID      `json:"pricing_plan_id,omitempty" db:"pricing_plan_id"`
-	IsActive      bool            `json:"is_active" db:"is_active"`
-	CreatedAt     time.Time       `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time       `json:"updated_at" db:"updated_at"`
+	PricingPlanID         *uuid.UUID      `json:"pricing_plan_id,omitempty" db:"pricing_plan_id"`
+	BillingCycle          string          `json:"billing_cycle,omitempty" db:"billing_cycle"`
+	BillingCycleAnchorDay int             `json:"billing_cycle_anchor_day,omitempty" db:"billing_cycle_anchor_day"`
+	IsActive              bool            `json:"is_active" db:"is_active"`
+	HasPaymentMethods     bool            `json:"has_payment_methods" db:"-"`
+	CreatedAt             time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time       `json:"updated_at" db:"updated_at"`
 }
 
 // Standard Billing Account and Project Billing Roles
@@ -30,13 +33,26 @@ const (
 	BillingRoleBillingViewer  = "billing-viewer"
 )
 
+// MemberProjectSource represents a linked project that grants billing access to a member.
+type MemberProjectSource struct {
+	ProjectID   uuid.UUID `json:"project_id"`
+	ProjectName string    `json:"project_name,omitempty"`
+	Role        string    `json:"role,omitempty"`
+}
+
 // BillingAccountMember maps user permissions within a specific billing account.
 type BillingAccountMember struct {
-	ID               uuid.UUID `json:"id" db:"id"`
-	BillingAccountID uuid.UUID `json:"billing_account_id" db:"billing_account_id"`
-	UserID           string    `json:"user_id" db:"user_id"`
-	Role             string    `json:"role" db:"role"` // 'owner', 'billing-manager', 'billing-member', 'billing-viewer'
-	CreatedAt        time.Time `json:"created_at" db:"created_at"`
+	ID               uuid.UUID             `json:"id" db:"id"`
+	BillingAccountID uuid.UUID             `json:"billing_account_id" db:"billing_account_id"`
+	UserID           string                `json:"user_id" db:"user_id"`
+	Role             string                `json:"role" db:"role"` // 'owner', 'billing-manager', 'billing-member', 'billing-viewer'
+	Username         string                `json:"username,omitempty" db:"-"`
+	FirstName        string                `json:"first_name,omitempty" db:"-"`
+	LastName         string                `json:"last_name,omitempty" db:"-"`
+	Email            string                `json:"email,omitempty" db:"-"`
+	AvatarURL        string                `json:"avatar_url,omitempty" db:"-"`
+	SourceProjects   []MemberProjectSource `json:"source_projects,omitempty" db:"-"`
+	CreatedAt        time.Time             `json:"created_at" db:"created_at"`
 }
 
 // ProjectBillingBinding links a project to exactly one billing account (1:N topology).
