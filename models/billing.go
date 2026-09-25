@@ -22,12 +22,20 @@ type BillingAccount struct {
 	UpdatedAt     time.Time       `json:"updated_at" db:"updated_at"`
 }
 
+// Standard Billing Account and Project Billing Roles
+const (
+	BillingRoleOwner          = "owner"
+	BillingRoleBillingManager = "billing-manager"
+	BillingRoleBillingMember  = "billing-member"
+	BillingRoleBillingViewer  = "billing-viewer"
+)
+
 // BillingAccountMember maps user permissions within a specific billing account.
 type BillingAccountMember struct {
 	ID               uuid.UUID `json:"id" db:"id"`
 	BillingAccountID uuid.UUID `json:"billing_account_id" db:"billing_account_id"`
 	UserID           string    `json:"user_id" db:"user_id"`
-	Role             string    `json:"role" db:"role"` // 'admin', 'viewer'
+	Role             string    `json:"role" db:"role"` // 'owner', 'billing-manager', 'billing-member', 'billing-viewer'
 	CreatedAt        time.Time `json:"created_at" db:"created_at"`
 }
 

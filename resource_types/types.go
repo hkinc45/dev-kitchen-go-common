@@ -7,4 +7,5 @@ const (
 	UserSecretStore = "user-secret-store"
 	VCSConnection   = "vcs-connection"
 	Admin           = "admin"
+	BillingAccount  = "billing-account"
 )
