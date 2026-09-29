@@ -1,5 +1,14 @@
 # Development Log
 
+## Session: September 28, 2026
+
+*   **Feature: Resource Attachment URL Protocol & Scheme Customization (Milestone 33)**
+    *   **Goal:** Allow users to specify custom driver and protocol schemes (e.g. `postgresql+asyncpg://`, `mysql+pymysql://`, `rediss://`) for resource attachments, enabling seamless integration with Python, Node.js, and multi-runtime stacks requiring driver-specific connection strings.
+    *   **Implementation:**
+        *   Added `URLPrefix` field (`url_prefix,omitempty`) to `ResourceAttachment` struct in `models/recipe.go`.
+        *   Tagged and released `v0.5.33`.
+    *   **Verification:** Verified Go tests with `go test ./...` passing cleanly.
+
 ## Session: September 24, 2026
 
 *   **Feature: Ephemeral Observability & Telemetry Shared Models (Milestone 28)**

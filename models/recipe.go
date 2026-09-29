@@ -65,6 +65,7 @@ type ResourceAttachment struct {
 	Engine            string            `json:"engine"` // "postgresql", "mysql", "mariadb", "redis"
 	Aliases           map[string]string `json:"aliases"`
 	EnvironmentPrefix string            `json:"environment_prefix,omitempty"`
+	URLPrefix         string            `json:"url_prefix,omitempty"`
 }
 
 // DisplayRecipe represents an enriched recipe struct with live telemetry.
