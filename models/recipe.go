@@ -56,16 +56,18 @@ type Recipe struct {
 	UpdatedAt             time.Time            `json:"updated_at" db:"updated_at"`
 }
 
-// ResourceAttachment represents a dynamic resource binding (e.g. database, cache) for repository recipes.
+// ResourceAttachment represents a dynamic resource binding (e.g. database, cache, object storage) for repository recipes.
 type ResourceAttachment struct {
 	ID                string            `json:"id"`
 	RecipeID          uuid.UUID         `json:"recipe_id"`
 	RecipeName        string            `json:"recipe_name"`
-	Type              string            `json:"type"`   // "database" | "cache"
-	Engine            string            `json:"engine"` // "postgresql", "mysql", "mariadb", "redis"
+	Type              string            `json:"type"`   // "database" | "cache" | "object_storage"
+	Engine            string            `json:"engine"` // "postgresql", "mysql", "mariadb", "redis", "minio", "s3"
 	Aliases           map[string]string `json:"aliases"`
 	EnvironmentPrefix string            `json:"environment_prefix,omitempty"`
 	URLPrefix         string            `json:"url_prefix,omitempty"`
+	BucketID          *uuid.UUID        `json:"bucket_id,omitempty"`
+	BucketName        string            `json:"bucket_name,omitempty"`
 }
 
 // DisplayRecipe represents an enriched recipe struct with live telemetry.

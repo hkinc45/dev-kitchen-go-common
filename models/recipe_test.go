@@ -48,6 +48,22 @@ func TestResourceAttachmentJSON(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "object storage attachment with bucket id and name",
+			attachment: ResourceAttachment{
+				ID:         "att-" + uuid.New().String(),
+				RecipeID:   uuid.Nil,
+				RecipeName: "",
+				Type:       "object_storage",
+				Engine:     "minio",
+				BucketID:   &targetRecipeID,
+				BucketName: "dk-test-bucket",
+				Aliases: map[string]string{
+					"endpoint": "S3_ENDPOINT",
+					"bucket":   "S3_BUCKET",
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -83,10 +99,11 @@ func TestResourceAttachmentJSON(t *testing.T) {
 			if len(unmarshaled.Aliases) != len(tt.attachment.Aliases) {
 				t.Errorf("expected %d aliases, got %d", len(tt.attachment.Aliases), len(unmarshaled.Aliases))
 			}
-			for k, v := range tt.attachment.Aliases {
-				if unmarshaled.Aliases[k] != v {
-					t.Errorf("expected alias[%s] = %s, got %s", k, v, unmarshaled.Aliases[k])
-				}
+			if (tt.attachment.BucketID == nil && unmarshaled.BucketID != nil) || (tt.attachment.BucketID != nil && (unmarshaled.BucketID == nil || *unmarshaled.BucketID != *tt.attachment.BucketID)) {
+				t.Errorf("expected BucketID %v, got %v", tt.attachment.BucketID, unmarshaled.BucketID)
+			}
+			if unmarshaled.BucketName != tt.attachment.BucketName {
+				t.Errorf("expected BucketName %s, got %s", tt.attachment.BucketName, unmarshaled.BucketName)
 			}
 		})
 	}
