@@ -48,10 +48,12 @@ type BucketQuota struct {
 type StorageServiceAccount struct {
 	ID              uuid.UUID  `json:"id" db:"id"`
 	ProjectID       uuid.UUID  `json:"project_id" db:"project_id"`
+	Name            string     `json:"name" db:"name"`
 	AccessKey       string     `json:"access_key" db:"access_key"`
 	VaultSecretPath string     `json:"vault_secret_path" db:"vault_secret_path"`
 	PolicyName      string     `json:"policy_name" db:"policy_name"`
 	Description     string     `json:"description" db:"description"`
+	AllowedBuckets  []string   `json:"allowed_buckets" db:"allowed_buckets"`
 	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
 	ExpiresAt       *time.Time `json:"expires_at,omitempty" db:"expires_at"`
 }
