@@ -66,8 +66,9 @@ type ResourceAttachment struct {
 	Aliases           map[string]string `json:"aliases"`
 	EnvironmentPrefix string            `json:"environment_prefix,omitempty"`
 	URLPrefix         string            `json:"url_prefix,omitempty"`
-	BucketID          *uuid.UUID        `json:"bucket_id,omitempty"`
-	BucketName        string            `json:"bucket_name,omitempty"`
+	BucketID            *uuid.UUID        `json:"bucket_id,omitempty"`
+	BucketName          string            `json:"bucket_name,omitempty"`
+	CredentialAccessKey string            `json:"credential_access_key,omitempty"`
 }
 
 // DisplayRecipe represents an enriched recipe struct with live telemetry.
