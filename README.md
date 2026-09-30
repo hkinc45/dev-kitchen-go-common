@@ -1,75 +1,96 @@
-# Dev Kitchen Go Common
+# Dev Kitchen Go Common (`dev-kitchen-go-common`)
 
-This repository contains common Go libraries shared across the Dev Kitchen microservices ecosystem.
+The shared Go library for all microservices in the **Dev Kitchen** cloud developer platform. `dev-kitchen-go-common` consolidates reusable authentication middleware, shared domain models, standardized error representations, HTTP client utilities, currency conversion, and Kubernetes metadata generators.
 
-## Verified Expert Patterns (Go 1.21+)
+---
 
-### Error Handling
-- **Structured Wrapping:** Use `APIError` with `NewAPIErrorWrap` to support standard library error wrapping (`Unwrap() error`). This enables deep error inspection using `errors.Is` and `errors.As`.
+## Library Architecture & Modules
 
-### Structured Logging (slog)
-- **Standardized Observability:** All common modules (`auth`, `worker`) use `log/slog` for structured, zero-dependency logging.
-- **Contextual Fields:** Logs automatically include high-signal fields like `resource_type`, `id`, and `scope` to facilitate distributed tracing.
+| Package | Purpose |
+| :--- | :--- |
+| `auth` | Gin middleware for OIDC JWT verification, service-to-service auth, token exchange, and V1/V2 permission checks (`RequirePermissionV2`). |
+| `resource_types` | Canonical constants defining resource categories (`Project`, `Recipe`, `StorageBucket`, `VCSConnection`, `Cluster`, etc.). |
+| `models` | Shared structs for recipes, storage buckets, container registry tokens, compute profiles, runtime presets, billing accounts, and observability events. |
+| `errors` | Structured `APIError` formatting compliant with REST error semantics. |
+| `clients` | Standardized HTTP response parsers and error wrappers for inter-service communication. |
+| `gateways` | Gateway abstractions for routing and inter-service dispatch. |
+| `worker` | Concurrent background worker pool implementation. |
+| `currency` | Currency conversion routines supporting multi-region billing. |
+| `metadata` | Helper functions for constructing standard Kubernetes labels and annotations. |
 
-### Worker & Concurrency
-- **Concurrent Pull Subscription:** Uses NATS JetStream with a bounded worker pool for predictable resource usage.
-- **Key-Based Locking:** Implements sequential processing for the same resource key while maintaining high global parallelism.
-- **Explicit Cancellation:** All workers respect context timeouts and cancellation signals.
+---
 
-## Packages
+## Installation & Import
 
-### `auth`
+Import into any Go service:
+```go
+import (
+    "github.com/hkinc45/dev-kitchen-go-common/auth"
+    "github.com/hkinc45/dev-kitchen-go-common/errors"
+    "github.com/hkinc45/dev-kitchen-go-common/models"
+    "github.com/hkinc45/dev-kitchen-go-common/resource_types"
+)
+```
 
-The `auth` package provides middleware for Gin-based services to handle authentication and authorization.
+Ensure your `go.mod` references the module:
+```go
+module my-service
 
-#### Usage
+require github.com/hkinc45/dev-kitchen-go-common v0.0.0
+```
 
-1.  **Add to `go.mod`:**
-    ```
-    require github.com/hkinc45/dev-kitchen-go-common v0.2.0
-    ```
+---
 
-2.  **Initialize the Middleware:**
-    In your `main.go`, initialize the middleware. You will need to provide the OIDC provider URL and the service's own client ID.
+## Quickstart: Securing a Gin Service
 
-    ```go
-    import "github.com/hkinc45/dev-kitchen-go-common/auth"
+```go
+package main
 
-    // ...
+import (
+    "context"
+    "net/http"
+    "os"
+
+    "github.com/gin-gonic/gin"
+    "github.com/hkinc45/dev-kitchen-go-common/auth"
+)
+
+func main() {
+    r := gin.Default()
 
     authMiddleware, err := auth.NewMiddleware(
         context.Background(),
         os.Getenv("AUTH_PROVIDER_URL"),
         os.Getenv("OIDC_CLIENT_ID"),
+        os.Getenv("AUTH_SERVICE_URL"),
     )
     if err != nil {
-        log.Fatalf("Failed to create auth middleware: %v", err)
+        panic(err)
     }
-    ```
 
-3.  **Protect Routes:**
-    You can now use the middleware to protect your Gin route groups.
+    // Public route
+    r.GET("/health", func(c *gin.Context) {
+        c.JSON(http.StatusOK, gin.H{"status": "ok"})
+    })
 
-    **For User-Facing Services:**
-    Use `UserAuth()` to validate tokens from end-users. It checks the token signature, expiration, and ensures the service is in the token's audience (`aud` claim).
-
-    ```go
-    apiV1 := r.Group("/api/v1")
-    apiV1.Use(authMiddleware.UserAuth())
+    // Internal service-to-service route
+    internal := r.Group("/internal/v1")
+    internal.Use(authMiddleware.ServiceAuth())
     {
-        // All routes in this group are now protected
-        apiV1.GET("/me", ...)
+        internal.GET("/data", func(c *gin.Context) {
+            c.JSON(http.StatusOK, gin.H{"secret": "internal data"})
+        })
     }
-    ```
 
-    **For Internal Services:**
-    Use `ServiceAuth()` to validate service-to-service tokens. It checks the token signature, expiration, and ensures the token has the `internal-comm` role.
+    r.Run(":8080")
+}
+```
 
-    ```go
-    internalV1 := r.Group("/internal/v1")
-    internalV1.Use(authMiddleware.ServiceAuth())
-    {
-        // All routes in this group are now protected
-        internalV1.POST("/do-something", ...)
-    }
-    ```
+---
+
+## Documentation Navigation (Diátaxis)
+
+- **Reference:**
+  - [Package & Types Catalog](docs/packages.md)
+- **How-to Guides:**
+  - [Auth Middleware Integration Guide](docs/auth-middleware.md)
