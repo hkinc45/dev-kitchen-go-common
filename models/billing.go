@@ -156,6 +156,8 @@ type Invoice struct {
 	SubtotalMicros       int64         `json:"subtotal_micros" db:"subtotal_micros"`
 	TaxMicros            int64         `json:"tax_micros" db:"tax_micros"`
 	TotalMicros          int64         `json:"total_micros" db:"total_micros"`
+	CreditsAppliedMicros int64         `json:"credits_applied_micros" db:"credits_applied_micros"`
+	AmountDueMicros      int64         `json:"amount_due_micros" db:"amount_due_micros"`
 	BaseCurrency         string        `json:"base_currency" db:"base_currency"`
 	TargetCurrency       string        `json:"target_currency" db:"target_currency"`
 	ExchangeRate         float64       `json:"exchange_rate" db:"exchange_rate"`
@@ -290,3 +292,107 @@ type PaymentSucceededPayload struct {
 	PaymentIntentID  string    `json:"payment_intent_id"`
 	Timestamp        time.Time `json:"timestamp"`
 }
+
+// --- Virtual Wallets & Cloud Credits ---
+
+// BillingWallet represents a virtual prepaid wallet belonging to a billing account.
+type BillingWallet struct {
+	ID               uuid.UUID `json:"id" db:"id"`
+	BillingAccountID uuid.UUID `json:"billing_account_id" db:"billing_account_id"`
+	Currency         string    `json:"currency" db:"currency"`
+	BalanceMicros    int64     `json:"balance_micros" db:"balance_micros"`
+	CreatedAt        time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// Wallet transaction types.
+const (
+	WalletTxTypeGrant      = "grant"
+	WalletTxTypePurchase   = "purchase"
+	WalletTxTypeDeduction  = "deduction"
+	WalletTxTypeRefund     = "refund"
+	WalletTxTypeExpiration = "expiration"
+)
+
+// Wallet reference types.
+const (
+	WalletRefTypeInvoice          = "invoice"
+	WalletRefTypeAdminGrant       = "admin_grant"
+	WalletRefTypeStripeCheckout   = "stripe_checkout"
+	WalletRefTypePaystackCheckout = "paystack_checkout"
+	WalletRefTypeExpirationJob    = "expiration_job"
+)
+
+// BillingWalletTransaction provides an immutable double-entry audit record for any balance change.
+type BillingWalletTransaction struct {
+	ID                 uuid.UUID       `json:"id" db:"id"`
+	WalletID           uuid.UUID       `json:"wallet_id" db:"wallet_id"`
+	BillingAccountID   uuid.UUID       `json:"billing_account_id" db:"billing_account_id"`
+	Type               string          `json:"type" db:"type"` // 'grant', 'purchase', 'deduction', 'refund', 'expiration'
+	AmountMicros       int64           `json:"amount_micros" db:"amount_micros"`
+	BalanceAfterMicros int64           `json:"balance_after_micros" db:"balance_after_micros"`
+	Currency           string          `json:"currency" db:"currency"`
+	ReferenceType      string          `json:"reference_type" db:"reference_type"` // 'invoice', 'admin_grant', 'stripe_checkout', 'paystack_checkout', 'expiration_job'
+	ReferenceID        *string         `json:"reference_id,omitempty" db:"reference_id"`
+	Description        string          `json:"description" db:"description"`
+	ExpiresAt          *time.Time      `json:"expires_at,omitempty" db:"expires_at"`
+	Metadata           json.RawMessage `json:"metadata,omitempty" db:"metadata"`
+	CreatedAt          time.Time       `json:"created_at" db:"created_at"`
+}
+
+// BillingWalletGrant tracks promotional grants with expiration dates for FIFO consumption.
+type BillingWalletGrant struct {
+	ID                    uuid.UUID `json:"id" db:"id"`
+	WalletID              uuid.UUID `json:"wallet_id" db:"wallet_id"`
+	BillingAccountID      uuid.UUID `json:"billing_account_id" db:"billing_account_id"`
+	InitialAmountMicros   int64     `json:"initial_amount_micros" db:"initial_amount_micros"`
+	RemainingAmountMicros int64     `json:"remaining_amount_micros" db:"remaining_amount_micros"`
+	Currency              string    `json:"currency" db:"currency"`
+	ExpiresAt             time.Time `json:"expires_at" db:"expires_at"`
+	IsExpired             bool      `json:"is_expired" db:"is_expired"`
+	CreatedAt             time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// AccountRateCardOverride defines negotiated per-account unit prices for specific SKUs.
+type AccountRateCardOverride struct {
+	ID                       uuid.UUID `json:"id" db:"id"`
+	BillingAccountID         uuid.UUID `json:"billing_account_id" db:"billing_account_id"`
+	SKU                      string    `json:"sku" db:"sku"`
+	CustomPricePerUnitMicros int64     `json:"custom_price_per_unit_micros" db:"custom_price_per_unit_micros"`
+	Notes                    *string   `json:"notes,omitempty" db:"notes"`
+	CreatedBy                string    `json:"created_by" db:"created_by"`
+	CreatedAt                time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt                time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// --- Infrastructure Primitives Telemetry Payloads ---
+
+// VMLifecycleEventPayload is published on vm.started and vm.stopped.
+type VMLifecycleEventPayload struct {
+	VMID      uuid.UUID `json:"vm_id"`
+	ProjectID uuid.UUID `json:"project_id"`
+	VCPUs     int       `json:"vcpus"`
+	MemoryGB  int       `json:"memory_gb"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// DBLifecycleEventPayload is published on db.started and db.stopped.
+type DBLifecycleEventPayload struct {
+	ClusterID  uuid.UUID `json:"cluster_id"`
+	ProjectID  uuid.UUID `json:"project_id"`
+	Engine     string    `json:"engine"`
+	NodesCount int       `json:"nodes_count"`
+	Timestamp  time.Time `json:"timestamp"`
+}
+
+// S3UsageEventPayload is published on storage.s3.usage_polled.
+type S3UsageEventPayload struct {
+	BucketID     uuid.UUID `json:"bucket_id"`
+	ProjectID    uuid.UUID `json:"project_id"`
+	BucketName   string    `json:"bucket_name"`
+	SizeBytes    int64     `json:"size_bytes"`
+	ObjectsCount int64     `json:"objects_count"`
+	Timestamp    time.Time `json:"timestamp"`
+}
+

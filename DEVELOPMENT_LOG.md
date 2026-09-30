@@ -1,5 +1,17 @@
 # Development Log
 
+## Session: October 1, 2026
+
+*   **Feature: Virtual Prepaid Wallets, Rate Overrides & Cloud Primitives Telemetry (v0.5.37)**
+    *   **Goal:** Establish shared data models for virtual prepaid wallets, immutable transaction ledgers, promotional grants, tenant rate card overrides, and telemetry event payloads for compute VMs, managed database clusters, and MinIO S3 storage buckets.
+    *   **Implementation:**
+        *   Added `BillingWallet`, `BillingWalletTransaction`, `BillingWalletGrant`, and `AccountRateCardOverride` structs to `models/billing.go`.
+        *   Added `VMLifecycleEventPayload`, `DBLifecycleEventPayload`, and `S3UsageEventPayload` structs for NATS JetStream telemetry ingest.
+        *   Updated `Invoice` struct with `CreditsAppliedMicros` and `AmountDueMicros`.
+        *   Added unit tests in `models/billing_test.go`.
+        *   Tagged and released `v0.5.37`.
+    *   **Verification:** Ran `go test -v ./...` with 100% pass rate.
+
 ## Session: September 28, 2026
 
 *   **Feature: Resource Attachment URL Protocol & Scheme Customization (Milestone 33)**
