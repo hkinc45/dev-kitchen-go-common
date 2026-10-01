@@ -17,6 +17,9 @@ type BillingAccount struct {
 	BillingEmail  string          `json:"billing_email" db:"billing_email"`
 	Address       json.RawMessage `json:"address,omitempty" db:"address"`
 	PricingPlanID         *uuid.UUID      `json:"pricing_plan_id,omitempty" db:"pricing_plan_id"`
+	PlanEnrolledAt        *time.Time      `json:"plan_enrolled_at,omitempty" db:"plan_enrolled_at"`
+	PlanExpiresAt         *time.Time      `json:"plan_expires_at,omitempty" db:"plan_expires_at"`
+	FreeTierEligibility   string          `json:"free_tier_eligibility,omitempty" db:"free_tier_eligibility"`
 	BillingCycle          string          `json:"billing_cycle,omitempty" db:"billing_cycle"`
 	BillingCycleAnchorDay int             `json:"billing_cycle_anchor_day,omitempty" db:"billing_cycle_anchor_day"`
 	IsActive              bool            `json:"is_active" db:"is_active"`
@@ -74,9 +77,27 @@ type PricingPlan struct {
 	IncludedRAMGBHours      int       `json:"included_ram_gb_hours" db:"included_ram_gb_hours"`
 	IncludedStorageGBMonths int       `json:"included_storage_gb_months" db:"included_storage_gb_months"`
 	IncludedEgressGB        int       `json:"included_egress_gb" db:"included_egress_gb"`
+	TrialDays               int       `json:"trial_days" db:"trial_days"` // 0 = unlimited / no trial expiration
 	IsDefault               bool      `json:"is_default" db:"is_default"`
 	IsActive                bool      `json:"is_active" db:"is_active"`
 	CreatedAt               time.Time `json:"created_at" db:"created_at"`
+}
+
+// PlanAccountEnrollment represents a billing account's active or past enrollment in a pricing plan.
+type PlanAccountEnrollment struct {
+	AccountID            uuid.UUID  `json:"account_id"`
+	AccountName          string     `json:"account_name"`
+	OwnerUserID          string     `json:"owner_user_id"`
+	BillingEmail         string     `json:"billing_email"`
+	Currency             string     `json:"currency"`
+	PricingPlanID        *uuid.UUID `json:"pricing_plan_id,omitempty"`
+	PlanName             string     `json:"plan_name"`
+	IsDefault            bool       `json:"is_default"`
+	PlanEnrolledAt       *time.Time `json:"plan_enrolled_at,omitempty"`
+	PlanExpiresAt        *time.Time `json:"plan_expires_at,omitempty"`
+	FreeTierEligibility string     `json:"free_tier_eligibility"`
+	Status               string     `json:"status"` // 'active', 'expiring_soon', 'expired', 'unlimited'
+	DaysRemaining        *int       `json:"days_remaining,omitempty"`
 }
 
 // RateCard defines unit prices for billable resource overages in USD micros.

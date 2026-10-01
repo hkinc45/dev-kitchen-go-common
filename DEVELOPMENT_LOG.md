@@ -1,5 +1,16 @@
 # Development Log
 
+## Session: October 2, 2026
+
+*   **Feature: Pricing Plan Time-Gating, Expiration & Account Enrollment Models (v0.5.38)**
+    *   **Goal:** Establish shared data models to support time-gating free tiers and pricing plans with customizable trial durations, tracking enrollment and expiration dates, and managing tenant enrollments.
+    *   **Implementation:**
+        *   Added `TrialDays` to `models.PricingPlan`.
+        *   Added `PlanEnrolledAt`, `PlanExpiresAt`, and `FreeTierEligibility` to `models.BillingAccount`.
+        *   Added `PlanAccountEnrollment` model to represent tenant plan enrollments, time-gate status, and expiration windows.
+        *   Tagged and released `v0.5.38`.
+    *   **Verification:** Ran `go test ./...` with 100% pass rate.
+
 ## Session: October 1, 2026
 
 *   **Feature: Virtual Prepaid Wallets, Rate Overrides & Cloud Primitives Telemetry (v0.5.37)**
@@ -96,3 +107,15 @@
         *   Migrated all legacy `log` calls to `log/slog` in `auth/middleware.go` and `clients/response_handler.go`.
         *   Updated version tag to `v0.5.12` to make the changes available to downstream services.
     *   **Impact:** Ensures consistent, structured logging across all services that use the common library, improving observability and debugging.
+
+## Session: October 1, 2026 (Milestone 36 & 39: Virtual Wallets & Cloud Infrastructure Metering)
+
+*   **Models: Virtual Wallets, Rate Overrides & Infrastructure Telemetry Payloads (`models/billing.go`):**
+    *   **Goal:** Define unified data structures for double-entry virtual credit wallets, enterprise contract rate overrides, and cloud infrastructure telemetry payloads.
+    *   **Implementation:**
+        *   Added `BillingWallet`, `BillingWalletTransaction`, `WalletTransactionType` (`grant`, `purchase`, `deduction`, `refund`, `expiration`), and `WalletBalanceResponse`.
+        *   Added `AccountRateCardOverride` model supporting custom per-account SKU rates.
+        *   Added `VMLifecycleEventPayload`, `DBLifecycleEventPayload`, and `S3UsageEventPayload` for JetStream telemetry ingestion.
+        *   Extended `Invoice` model with `CreditsAppliedMicros` and `RemainingBalanceMicros`.
+    *   **Impact:** Enables type-safe virtual wallet manipulation and infrastructure metering across all backend services.
+
