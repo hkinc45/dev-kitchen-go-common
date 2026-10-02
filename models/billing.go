@@ -273,15 +273,21 @@ type WorkloadUsageEventPayload struct {
 	ProjectID     uuid.UUID `json:"project_id"`
 	CPULimitM     int       `json:"cpu_limit_m"`
 	MemoryLimitMi int       `json:"memory_limit_mi"`
+	ProductType   string    `json:"product_type,omitempty"`
+	Region        string    `json:"region,omitempty"`
+	UserID        string    `json:"user_id,omitempty"`
 	Timestamp     time.Time `json:"timestamp"`
 }
 
 // StorageUsageEventPayload is published on storage.allocated and storage.deleted.
 type StorageUsageEventPayload struct {
-	StorageID string    `json:"storage_id"`
-	ProjectID uuid.UUID `json:"project_id"`
-	SizeGB    int       `json:"size_gb"`
-	Timestamp time.Time `json:"timestamp"`
+	StorageID   string    `json:"storage_id"`
+	ProjectID   uuid.UUID `json:"project_id"`
+	SizeGB      int       `json:"size_gb"`
+	ProductType string    `json:"product_type,omitempty"`
+	Region      string    `json:"region,omitempty"`
+	UserID      string    `json:"user_id,omitempty"`
+	Timestamp   time.Time `json:"timestamp"`
 }
 
 // BudgetThresholdReachedPayload is published on billing.budget.threshold_reached.
@@ -371,6 +377,7 @@ type BillingWalletGrant struct {
 	Currency              string    `json:"currency" db:"currency"`
 	ExpiresAt             time.Time `json:"expires_at" db:"expires_at"`
 	IsExpired             bool      `json:"is_expired" db:"is_expired"`
+	ApplicableProductTypes string   `json:"applicable_product_types" db:"applicable_product_types"` // 'all' or comma-separated e.g. 'storage_s3,compute_vm'
 	CreatedAt             time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt             time.Time `json:"updated_at" db:"updated_at"`
 }
@@ -391,20 +398,26 @@ type AccountRateCardOverride struct {
 
 // VMLifecycleEventPayload is published on vm.started and vm.stopped.
 type VMLifecycleEventPayload struct {
-	VMID      uuid.UUID `json:"vm_id"`
-	ProjectID uuid.UUID `json:"project_id"`
-	VCPUs     int       `json:"vcpus"`
-	MemoryGB  int       `json:"memory_gb"`
-	Timestamp time.Time `json:"timestamp"`
+	VMID        uuid.UUID `json:"vm_id"`
+	ProjectID   uuid.UUID `json:"project_id"`
+	VCPUs       int       `json:"vcpus"`
+	MemoryGB    int       `json:"memory_gb"`
+	ProductType string    `json:"product_type,omitempty"`
+	Region      string    `json:"region,omitempty"`
+	UserID      string    `json:"user_id,omitempty"`
+	Timestamp   time.Time `json:"timestamp"`
 }
 
 // DBLifecycleEventPayload is published on db.started and db.stopped.
 type DBLifecycleEventPayload struct {
-	ClusterID  uuid.UUID `json:"cluster_id"`
-	ProjectID  uuid.UUID `json:"project_id"`
-	Engine     string    `json:"engine"`
-	NodesCount int       `json:"nodes_count"`
-	Timestamp  time.Time `json:"timestamp"`
+	ClusterID   uuid.UUID `json:"cluster_id"`
+	ProjectID   uuid.UUID `json:"project_id"`
+	Engine      string    `json:"engine"`
+	NodesCount  int       `json:"nodes_count"`
+	ProductType string    `json:"product_type,omitempty"`
+	Region      string    `json:"region,omitempty"`
+	UserID      string    `json:"user_id,omitempty"`
+	Timestamp   time.Time `json:"timestamp"`
 }
 
 // S3UsageEventPayload is published on storage.s3.usage_polled.
@@ -414,6 +427,20 @@ type S3UsageEventPayload struct {
 	BucketName   string    `json:"bucket_name"`
 	SizeBytes    int64     `json:"size_bytes"`
 	ObjectsCount int64     `json:"objects_count"`
+	ProductType  string    `json:"product_type,omitempty"`
+	Region       string    `json:"region,omitempty"`
+	UserID       string    `json:"user_id,omitempty"`
 	Timestamp    time.Time `json:"timestamp"`
+}
+
+// PlatformControls holds global operational billing parameters and debt ceilings.
+type PlatformControls struct {
+	ID                     string    `json:"id" db:"id"`
+	GracePeriodDays        int       `json:"grace_period_days" db:"grace_period_days"`
+	MaxOverdueDebtMicros   int64     `json:"max_overdue_debt_micros" db:"max_overdue_debt_micros"`
+	AutoRetryIntervalHours int       `json:"auto_retry_interval_hours" db:"auto_retry_interval_hours"`
+	AutoChargeEnabled      bool      `json:"auto_charge_enabled" db:"auto_charge_enabled"`
+	DefaultTaxPercent      float64   `json:"default_tax_percent" db:"default_tax_percent"`
+	UpdatedAt              time.Time `json:"updated_at" db:"updated_at"`
 }
 
