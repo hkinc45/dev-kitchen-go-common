@@ -78,9 +78,32 @@ type PricingPlan struct {
 	IncludedStorageGBMonths int       `json:"included_storage_gb_months" db:"included_storage_gb_months"`
 	IncludedEgressGB        int       `json:"included_egress_gb" db:"included_egress_gb"`
 	TrialDays               int       `json:"trial_days" db:"trial_days"` // 0 = unlimited / no trial expiration
+	Category                string    `json:"category" db:"category"`     // 'compute', 'support', 'monitoring', 'security_scanning', 'disaster_recovery', 'all_in_one'
+	PlanType                string    `json:"plan_type" db:"plan_type"`   // 'recurring', 'one_time'
+	BillingInterval         string    `json:"billing_interval" db:"billing_interval"` // 'month', 'year', 'quarter', 'one_time'
+	BillingIntervalCount    int       `json:"billing_interval_count" db:"billing_interval_count"`
+	Features                []string  `json:"features" db:"features"`
 	IsDefault               bool      `json:"is_default" db:"is_default"`
 	IsActive                bool      `json:"is_active" db:"is_active"`
 	CreatedAt               time.Time `json:"created_at" db:"created_at"`
+}
+
+// PaymentGatewayConfig defines the configuration and operational status of a payment gateway.
+type PaymentGatewayConfig struct {
+	ID                     string          `json:"id" db:"id"`
+	Name                   string          `json:"name" db:"name"`
+	Description            string          `json:"description" db:"description"`
+	IsActive               bool            `json:"is_active" db:"is_active"`
+	IsDefault              bool            `json:"is_default" db:"is_default"`
+	SupportedCurrencies    []string        `json:"supported_currencies" db:"supported_currencies"`
+	PublicKey              string          `json:"public_key" db:"public_key"`
+	SecretKeyVaultPath     string          `json:"secret_key_vault_path,omitempty" db:"secret_key_vault_path"`
+	WebhookSecretVaultPath string          `json:"webhook_secret_vault_path,omitempty" db:"webhook_secret_vault_path"`
+	HasSecretKey           bool            `json:"has_secret_key" db:"has_secret_key"`
+	HasWebhookSecret       bool            `json:"has_webhook_secret" db:"has_webhook_secret"`
+	Metadata               json.RawMessage `json:"metadata,omitempty" db:"metadata"`
+	CreatedAt              time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt              time.Time       `json:"updated_at" db:"updated_at"`
 }
 
 // PlanAccountEnrollment represents a billing account's active or past enrollment in a pricing plan.
@@ -168,11 +191,20 @@ const (
 	InvoiceStatusUncollectible = "uncollectible"
 )
 
+// Invoice types.
+const (
+	InvoiceTypeCycle        = "cycle"
+	InvoiceTypeSubscription = "subscription"
+	InvoiceTypeManual       = "manual"
+	InvoiceTypeUpfront      = "subscription" // Backward compatibility alias
+)
+
 // Invoice represents a finalized, auditable billing statement.
 type Invoice struct {
 	ID                   uuid.UUID     `json:"id" db:"id"`
 	InvoiceNumber        string        `json:"invoice_number" db:"invoice_number"`
 	BillingAccountID     uuid.UUID     `json:"billing_account_id" db:"billing_account_id"`
+	InvoiceType          string        `json:"invoice_type" db:"invoice_type"`
 	Status               string        `json:"status" db:"status"`
 	SubtotalMicros       int64         `json:"subtotal_micros" db:"subtotal_micros"`
 	TaxMicros            int64         `json:"tax_micros" db:"tax_micros"`
@@ -441,6 +473,8 @@ type PlatformControls struct {
 	AutoRetryIntervalHours int       `json:"auto_retry_interval_hours" db:"auto_retry_interval_hours"`
 	AutoChargeEnabled      bool      `json:"auto_charge_enabled" db:"auto_charge_enabled"`
 	DefaultTaxPercent      float64   `json:"default_tax_percent" db:"default_tax_percent"`
+	PlatformBaseCurrency   string    `json:"platform_base_currency" db:"platform_base_currency"`
+	DefaultPaymentGateway  string    `json:"default_payment_gateway" db:"default_payment_gateway"`
 	UpdatedAt              time.Time `json:"updated_at" db:"updated_at"`
 }
 
