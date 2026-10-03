@@ -192,6 +192,7 @@ const (
 	InvoiceStatusPaid          = "paid"
 	InvoiceStatusVoid          = "void"
 	InvoiceStatusUncollectible = "uncollectible"
+	InvoiceStatusRefunded      = "refunded"
 )
 
 // Invoice types.
@@ -222,6 +223,10 @@ type Invoice struct {
 	PeriodEnd            time.Time     `json:"period_end" db:"period_end"`
 	DueDate              time.Time     `json:"due_date" db:"due_date"`
 	PaidAt               *time.Time    `json:"paid_at,omitempty" db:"paid_at"`
+	RefundedAt           *time.Time    `json:"refunded_at,omitempty" db:"refunded_at"`
+	RefundReason         *string       `json:"refund_reason,omitempty" db:"refund_reason"`
+	RefundAmountMicros   int64         `json:"refund_amount_micros,omitempty" db:"refund_amount_micros"`
+	DeletedAt            *time.Time    `json:"deleted_at,omitempty" db:"deleted_at"`
 	SubscriptionPlanID   *uuid.UUID    `json:"subscription_plan_id,omitempty" db:"subscription_plan_id"`
 	PDFStoragePath       *string       `json:"pdf_storage_path,omitempty" db:"pdf_storage_path"`
 	CreatedAt            time.Time     `json:"created_at" db:"created_at"`
