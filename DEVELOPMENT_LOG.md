@@ -1,5 +1,16 @@
 # Development Log
 
+## Session: October 3, 2026
+
+*   **Feature: Pricing Modes & Plug-and-Play Meter Definitions (v0.5.42)**
+    *   **Goal:** Establish shared data models for platform-wide/product-level pricing modes (`metered`, `subscription`, `hybrid`) and declarative meter definition schemas (`MeterDefinition`) for the generic usage aggregation and rating pipeline.
+    *   **Implementation:**
+        *   Added `PricingMode` struct with metadata, foundational flags, and enablement status.
+        *   Added `MeterDefinition` struct defining event filters, aggregation types, unit conversion factors, target SKUs, and plan quota keys.
+        *   Added `PricingMode` to `BillingAccount` and `DefaultPricingMode` to `PlatformControls`.
+        *   Tagged and released `v0.5.42`.
+    *   **Verification:** Verified Go tests with `go test ./...` passing cleanly.
+
 ## Session: October 2, 2026
 
 *   **Feature: Pricing Plan Time-Gating, Expiration & Account Enrollment Models (v0.5.38)**

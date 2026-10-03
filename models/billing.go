@@ -26,6 +26,7 @@ type BillingAccount struct {
 	BillingCycle                  string          `json:"billing_cycle,omitempty" db:"billing_cycle"`
 	BillingCycleAnchorDay         int             `json:"billing_cycle_anchor_day,omitempty" db:"billing_cycle_anchor_day"`
 	AutoApplyCredits              bool            `json:"auto_apply_credits" db:"auto_apply_credits"`
+	PricingMode                   string          `json:"pricing_mode,omitempty" db:"pricing_mode"`
 	IsActive                      bool            `json:"is_active" db:"is_active"`
 	HasPaymentMethods             bool            `json:"has_payment_methods" db:"-"`
 	CreatedAt                     time.Time       `json:"created_at" db:"created_at"`
@@ -545,6 +546,44 @@ type PlatformControls struct {
 	DefaultTaxPercent      float64   `json:"default_tax_percent" db:"default_tax_percent"`
 	PlatformBaseCurrency   string    `json:"platform_base_currency" db:"platform_base_currency"`
 	DefaultPaymentGateway  string    `json:"default_payment_gateway" db:"default_payment_gateway"`
+	DefaultPricingMode     string    `json:"default_pricing_mode" db:"default_pricing_mode"`
 	UpdatedAt              time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// PricingMode represents a platform-wide or product-level billing strategy (metered, subscription, hybrid).
+type PricingMode struct {
+	ID             string                 `json:"id" db:"id"`
+	Name           string                 `json:"name" db:"name"`
+	DisplayName    string                 `json:"display_name" db:"display_name"`
+	Description    string                 `json:"description,omitempty" db:"description"`
+	IsEnabled      bool                   `json:"is_enabled" db:"is_enabled"`
+	IsDefault      bool                   `json:"is_default" db:"is_default"`
+	IsFoundational bool                   `json:"is_foundational" db:"is_foundational"`
+	SortOrder      int                    `json:"sort_order" db:"sort_order"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty" db:"metadata"`
+	CreatedAt      time.Time              `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time              `json:"updated_at" db:"updated_at"`
+}
+
+// MeterDefinition represents a plug-and-play schema for the usage aggregation and rating engine.
+type MeterDefinition struct {
+	ID                   uuid.UUID              `json:"id" db:"id"`
+	ProductTypeID        uuid.UUID              `json:"product_type_id" db:"product_type_id"`
+	Code                 string                 `json:"code" db:"code"`
+	Name                 string                 `json:"name" db:"name"`
+	Description          string                 `json:"description,omitempty" db:"description"`
+	EventType            string                 `json:"event_type" db:"event_type"`
+	ResourceType         string                 `json:"resource_type" db:"resource_type"`
+	MetricField          string                 `json:"metric_field" db:"metric_field"`
+	FilterCriteria       map[string]interface{} `json:"filter_criteria,omitempty" db:"filter_criteria"`
+	AggregationType      string                 `json:"aggregation_type" db:"aggregation_type"` // 'gauge', 'avg', 'sum', 'duration_seconds'
+	SourceUnit           string                 `json:"source_unit" db:"source_unit"`
+	TargetUnit           string                 `json:"target_unit" db:"target_unit"`
+	UnitConversionFactor float64                `json:"unit_conversion_factor" db:"unit_conversion_factor"`
+	TargetSKU            string                 `json:"target_sku" db:"target_sku"`
+	PlanQuotaKey         *string                `json:"plan_quota_key,omitempty" db:"plan_quota_key"`
+	IsActive             bool                   `json:"is_active" db:"is_active"`
+	CreatedAt            time.Time              `json:"created_at" db:"created_at"`
+	UpdatedAt            time.Time              `json:"updated_at" db:"updated_at"`
 }
 
