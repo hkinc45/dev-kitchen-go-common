@@ -70,26 +70,70 @@ type ProjectBillingBinding struct {
 	BoundByUserID    string    `json:"bound_by_user_id" db:"bound_by_user_id"`
 }
 
+// PlanEntitlement represents a feature, resource quota, SLA, or capability granted by a pricing plan.
+type PlanEntitlement struct {
+	Key   string      `json:"key"`
+	Label string      `json:"label"`
+	Value interface{} `json:"value"` // can be number, boolean, or string (e.g. "99.9%")
+	Unit  string      `json:"unit,omitempty"`
+	Type  string      `json:"type"` // "quota", "boolean", "badge", "limit"
+	Icon  string      `json:"icon,omitempty"`
+}
+
+// ProductFamily groups plans into upgrade/downgrade hierarchies within a product domain.
+type ProductFamily struct {
+	ID            uuid.UUID  `json:"id" db:"id"`
+	ProductTypeID *uuid.UUID `json:"product_type_id,omitempty" db:"product_type_id"`
+	Code          string     `json:"code" db:"code"`
+	Name          string     `json:"name" db:"name"`
+	Description   *string    `json:"description,omitempty" db:"description"`
+	IsStandalone  bool       `json:"is_standalone" db:"is_standalone"`
+	IsActive      bool       `json:"is_active" db:"is_active"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// ProductType defines high-level billing catalog domains and their default billing modes.
+type ProductType struct {
+	ID                    uuid.UUID       `json:"id" db:"id"`
+	Code                  string          `json:"code" db:"code"`
+	Name                  string          `json:"name,omitempty" db:"name"`
+	DisplayName           string          `json:"display_name" db:"display_name"`
+	Description           *string         `json:"description,omitempty" db:"description"`
+	BillingMode           string          `json:"billing_mode" db:"billing_mode"` // 'metered', 'subscription', 'hybrid'
+	IsSubscriptionEnabled bool            `json:"is_subscription_enabled" db:"is_subscription_enabled"`
+	SKUPrefix             string          `json:"sku_prefix" db:"sku_prefix"`
+	Icon                  string          `json:"icon" db:"icon"`
+	Metadata              json.RawMessage `json:"metadata,omitempty" db:"metadata"`
+	IsActive              bool            `json:"is_active" db:"is_active"`
+	CreatedAt             time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time       `json:"updated_at" db:"updated_at"`
+}
+
 // PricingPlan defines subscription tiers and included resource allowances.
 type PricingPlan struct {
-	ID                      uuid.UUID `json:"id" db:"id"`
-	Name                    string    `json:"name" db:"name"`
-	Slug                    string    `json:"slug" db:"slug"`
-	Description             *string   `json:"description,omitempty" db:"description"`
-	MonthlyFeeMicros        int64     `json:"monthly_fee_micros" db:"monthly_fee_micros"`
-	IncludedVCPUHours       int       `json:"included_vcpu_hours" db:"included_vcpu_hours"`
-	IncludedRAMGBHours      int       `json:"included_ram_gb_hours" db:"included_ram_gb_hours"`
-	IncludedStorageGBMonths int       `json:"included_storage_gb_months" db:"included_storage_gb_months"`
-	IncludedEgressGB        int       `json:"included_egress_gb" db:"included_egress_gb"`
-	TrialDays               int       `json:"trial_days" db:"trial_days"` // 0 = unlimited / no trial expiration
-	Category                string    `json:"category" db:"category"`     // 'compute', 'support', 'monitoring', 'security_scanning', 'disaster_recovery', 'all_in_one'
-	PlanType                string    `json:"plan_type" db:"plan_type"`   // 'recurring', 'one_time'
-	BillingInterval         string    `json:"billing_interval" db:"billing_interval"` // 'month', 'year', 'quarter', 'one_time'
-	BillingIntervalCount    int       `json:"billing_interval_count" db:"billing_interval_count"`
-	Features                []string  `json:"features" db:"features"`
-	IsDefault               bool      `json:"is_default" db:"is_default"`
-	IsActive                bool      `json:"is_active" db:"is_active"`
-	CreatedAt               time.Time `json:"created_at" db:"created_at"`
+	ID                      uuid.UUID         `json:"id" db:"id"`
+	ProductTypeID           *uuid.UUID        `json:"product_type_id,omitempty" db:"product_type_id"`
+	ProductFamilyID         *uuid.UUID        `json:"product_family_id,omitempty" db:"product_family_id"`
+	TierRank                int               `json:"tier_rank" db:"tier_rank"`
+	Name                    string            `json:"name" db:"name"`
+	Slug                    string            `json:"slug" db:"slug"`
+	Description             *string           `json:"description,omitempty" db:"description"`
+	MonthlyFeeMicros        int64             `json:"monthly_fee_micros" db:"monthly_fee_micros"`
+	IncludedVCPUHours       int               `json:"included_vcpu_hours" db:"included_vcpu_hours"`
+	IncludedRAMGBHours      int               `json:"included_ram_gb_hours" db:"included_ram_gb_hours"`
+	IncludedStorageGBMonths int               `json:"included_storage_gb_months" db:"included_storage_gb_months"`
+	IncludedEgressGB        int               `json:"included_egress_gb" db:"included_egress_gb"`
+	TrialDays               int               `json:"trial_days" db:"trial_days"` // 0 = unlimited / no trial expiration
+	Category                string            `json:"category" db:"category"`     // 'compute', 'support', 'monitoring', 'security_scanning', 'disaster_recovery', 'all_in_one'
+	PlanType                string            `json:"plan_type" db:"plan_type"`   // 'recurring', 'one_time'
+	BillingInterval         string            `json:"billing_interval" db:"billing_interval"` // 'month', 'year', 'quarter', 'one_time'
+	BillingIntervalCount    int               `json:"billing_interval_count" db:"billing_interval_count"`
+	Features                []string          `json:"features" db:"features"`
+	Entitlements            []PlanEntitlement `json:"entitlements" db:"entitlements"`
+	IsDefault               bool              `json:"is_default" db:"is_default"`
+	IsActive                bool              `json:"is_active" db:"is_active"`
+	CreatedAt               time.Time         `json:"created_at" db:"created_at"`
 }
 
 // PaymentGatewayConfig defines the configuration and operational status of a payment gateway.
