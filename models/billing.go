@@ -16,16 +16,19 @@ type BillingAccount struct {
 	TaxID         *string         `json:"tax_id,omitempty" db:"tax_id"`
 	BillingEmail  string          `json:"billing_email" db:"billing_email"`
 	Address       json.RawMessage `json:"address,omitempty" db:"address"`
-	PricingPlanID         *uuid.UUID      `json:"pricing_plan_id,omitempty" db:"pricing_plan_id"`
-	PlanEnrolledAt        *time.Time      `json:"plan_enrolled_at,omitempty" db:"plan_enrolled_at"`
-	PlanExpiresAt         *time.Time      `json:"plan_expires_at,omitempty" db:"plan_expires_at"`
-	FreeTierEligibility   string          `json:"free_tier_eligibility,omitempty" db:"free_tier_eligibility"`
-	BillingCycle          string          `json:"billing_cycle,omitempty" db:"billing_cycle"`
-	BillingCycleAnchorDay int             `json:"billing_cycle_anchor_day,omitempty" db:"billing_cycle_anchor_day"`
-	IsActive              bool            `json:"is_active" db:"is_active"`
-	HasPaymentMethods     bool            `json:"has_payment_methods" db:"-"`
-	CreatedAt             time.Time       `json:"created_at" db:"created_at"`
-	UpdatedAt             time.Time       `json:"updated_at" db:"updated_at"`
+	PricingPlanID                 *uuid.UUID      `json:"pricing_plan_id,omitempty" db:"pricing_plan_id"`
+	PlanEnrolledAt                *time.Time      `json:"plan_enrolled_at,omitempty" db:"plan_enrolled_at"`
+	PlanExpiresAt                 *time.Time      `json:"plan_expires_at,omitempty" db:"plan_expires_at"`
+	FreeTierEligibility           string          `json:"free_tier_eligibility,omitempty" db:"free_tier_eligibility"`
+	SubscriptionCancelAtPeriodEnd bool            `json:"subscription_cancel_at_period_end" db:"subscription_cancel_at_period_end"`
+	SubscriptionCanceledAt        *time.Time      `json:"subscription_canceled_at,omitempty" db:"subscription_canceled_at"`
+	SubscriptionStatus            string          `json:"subscription_status,omitempty" db:"subscription_status"`
+	BillingCycle                  string          `json:"billing_cycle,omitempty" db:"billing_cycle"`
+	BillingCycleAnchorDay         int             `json:"billing_cycle_anchor_day,omitempty" db:"billing_cycle_anchor_day"`
+	IsActive                      bool            `json:"is_active" db:"is_active"`
+	HasPaymentMethods             bool            `json:"has_payment_methods" db:"-"`
+	CreatedAt                     time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt                     time.Time       `json:"updated_at" db:"updated_at"`
 }
 
 // Standard Billing Account and Project Billing Roles
@@ -219,9 +222,26 @@ type Invoice struct {
 	PeriodEnd            time.Time     `json:"period_end" db:"period_end"`
 	DueDate              time.Time     `json:"due_date" db:"due_date"`
 	PaidAt               *time.Time    `json:"paid_at,omitempty" db:"paid_at"`
+	SubscriptionPlanID   *uuid.UUID    `json:"subscription_plan_id,omitempty" db:"subscription_plan_id"`
 	PDFStoragePath       *string       `json:"pdf_storage_path,omitempty" db:"pdf_storage_path"`
 	CreatedAt            time.Time     `json:"created_at" db:"created_at"`
 	Items                []InvoiceItem `json:"items,omitempty" db:"-"`
+}
+
+// BillingPaymentTransaction records individual incoming payments, charges, and gateway transactions.
+type BillingPaymentTransaction struct {
+	ID                uuid.UUID       `json:"id" db:"id"`
+	BillingAccountID  uuid.UUID       `json:"billing_account_id" db:"billing_account_id"`
+	InvoiceID         *uuid.UUID      `json:"invoice_id,omitempty" db:"invoice_id"`
+	InvoiceNumber     string          `json:"invoice_number,omitempty" db:"-"`
+	AmountMicros      int64           `json:"amount_micros" db:"amount_micros"`
+	Currency          string          `json:"currency" db:"currency"`
+	PaymentMethodType string          `json:"payment_method_type" db:"payment_method_type"` // 'saved_card', 'online_gateway', 'wallet_credits', 'manual_admin', 'wallet_topup'
+	Gateway           string          `json:"gateway" db:"gateway"`                         // 'paystack', 'stripe', 'wallet', 'admin'
+	GatewayReference  string          `json:"gateway_reference" db:"gateway_reference"`
+	Status            string          `json:"status" db:"status"`                           // 'succeeded', 'failed', 'pending'
+	Metadata          json.RawMessage `json:"metadata" db:"metadata"`
+	CreatedAt         time.Time       `json:"created_at" db:"created_at"`
 }
 
 // InvoiceItem represents an individual line item on an invoice.
