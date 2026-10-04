@@ -93,6 +93,7 @@ func TestBillingWalletTransaction_JSONSerialization(t *testing.T) {
 }
 
 func TestBillingWalletGrant_JSONSerialization(t *testing.T) {
+	grantExp := time.Now().Add(60 * 24 * time.Hour).Truncate(time.Second)
 	grant := BillingWalletGrant{
 		ID:                    uuid.New(),
 		WalletID:              uuid.New(),
@@ -100,7 +101,7 @@ func TestBillingWalletGrant_JSONSerialization(t *testing.T) {
 		InitialAmountMicros:   50000000,
 		RemainingAmountMicros: 20000000,
 		Currency:              "NGN",
-		ExpiresAt:             time.Now().Add(60 * 24 * time.Hour).Truncate(time.Second),
+		ExpiresAt:             &grantExp,
 		IsExpired:             false,
 		CreatedAt:             time.Now().Truncate(time.Second),
 		UpdatedAt:             time.Now().Truncate(time.Second),

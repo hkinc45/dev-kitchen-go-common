@@ -481,7 +481,7 @@ type BillingWalletGrant struct {
 	InitialAmountMicros   int64     `json:"initial_amount_micros" db:"initial_amount_micros"`
 	RemainingAmountMicros int64     `json:"remaining_amount_micros" db:"remaining_amount_micros"`
 	Currency              string    `json:"currency" db:"currency"`
-	ExpiresAt             time.Time `json:"expires_at" db:"expires_at"`
+	ExpiresAt             *time.Time `json:"expires_at" db:"expires_at"`
 	IsExpired             bool      `json:"is_expired" db:"is_expired"`
 	ApplicableProductTypes string   `json:"applicable_product_types" db:"applicable_product_types"` // 'all' or comma-separated e.g. 'storage_s3,compute_vm'
 	CreatedAt             time.Time `json:"created_at" db:"created_at"`
