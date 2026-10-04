@@ -25,6 +25,9 @@ type BillingAccount struct {
 	SubscriptionStatus            string          `json:"subscription_status,omitempty" db:"subscription_status"`
 	BillingCycle                  string          `json:"billing_cycle,omitempty" db:"billing_cycle"`
 	BillingCycleAnchorDay         int             `json:"billing_cycle_anchor_day,omitempty" db:"billing_cycle_anchor_day"`
+	PendingBillingCycle           *string         `json:"pending_billing_cycle,omitempty" db:"pending_billing_cycle"`
+	PendingBillingCycleAnchorDay  *int            `json:"pending_billing_cycle_anchor_day,omitempty" db:"pending_billing_cycle_anchor_day"`
+	PendingCycleEffectiveAt      *time.Time      `json:"pending_cycle_effective_at,omitempty" db:"pending_cycle_effective_at"`
 	AutoApplyCredits              bool            `json:"auto_apply_credits" db:"auto_apply_credits"`
 	PricingMode                   string          `json:"pricing_mode,omitempty" db:"pricing_mode"`
 	IsActive                      bool            `json:"is_active" db:"is_active"`
