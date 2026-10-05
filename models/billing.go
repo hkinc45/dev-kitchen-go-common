@@ -386,6 +386,7 @@ type WorkloadUsageEventPayload struct {
 	RegionID      string    `json:"region_id,omitempty"`
 	ClusterID     string    `json:"cluster_id,omitempty"`
 	ClusterName   string    `json:"cluster_name,omitempty"`
+	SKU           string    `json:"sku,omitempty"`
 	UserID        string    `json:"user_id,omitempty"`
 	Timestamp     time.Time `json:"timestamp"`
 }
