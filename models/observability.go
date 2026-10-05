@@ -79,3 +79,30 @@ type RecipeWorkloadPod struct {
 	Phase        string                `json:"phase"`
 	Containers   []RecipeContainerInfo `json:"containers"`
 }
+
+// WorkloadTelemetryEvent represents polled resource allocations and usage for an active tenant workload.
+type WorkloadTelemetryEvent struct {
+	ID                     string    `json:"id"`
+	ProjectID              string    `json:"project_id"`
+	RecipeID               string    `json:"recipe_id"`
+	WorkloadName           string    `json:"workload_name"`
+	WorkloadKind           string    `json:"workload_kind"` // "Deployment" or "StatefulSet"
+	Namespace              string    `json:"namespace"`
+	Replicas               int32     `json:"replicas"`
+	AllocatedCPUMillicores int64     `json:"allocated_cpu_millicores"`
+	AllocatedRAMBytes      int64     `json:"allocated_ram_bytes"`
+	StorageBytes           int64     `json:"storage_bytes"`
+	PollIntervalSeconds    int64     `json:"poll_interval_seconds"`
+	ClusterID              string    `json:"cluster_id,omitempty"`
+	ClusterName            string    `json:"cluster_name,omitempty"`
+	RegionID               string    `json:"region_id,omitempty"`
+	Timestamp              time.Time `json:"timestamp"`
+}
+
+// WorkloadTelemetryBatch contains a collection of telemetry events from a single polling cycle.
+type WorkloadTelemetryBatch struct {
+	BatchID     string                   `json:"batch_id"`
+	ClusterName string                   `json:"cluster_name"`
+	PolledAt    time.Time                `json:"polled_at"`
+	Workloads   []WorkloadTelemetryEvent `json:"workloads"`
+}

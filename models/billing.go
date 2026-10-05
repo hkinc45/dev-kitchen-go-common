@@ -178,6 +178,8 @@ type PlanAccountEnrollment struct {
 // RateCard defines unit prices for billable resource overages in USD micros.
 type RateCard struct {
 	SKU                string `json:"sku" db:"sku"`
+	RegionID           string `json:"region_id" db:"region_id"`
+	TierMinimumUnits   int64  `json:"tier_minimum_units" db:"tier_minimum_units"`
 	Name               string `json:"name" db:"name"`
 	Unit               string `json:"unit" db:"unit"`
 	PricePerUnitMicros int64  `json:"price_per_unit_micros" db:"price_per_unit_micros"`
@@ -381,6 +383,9 @@ type WorkloadUsageEventPayload struct {
 	MemoryLimitMi int       `json:"memory_limit_mi"`
 	ProductType   string    `json:"product_type,omitempty"`
 	Region        string    `json:"region,omitempty"`
+	RegionID      string    `json:"region_id,omitempty"`
+	ClusterID     string    `json:"cluster_id,omitempty"`
+	ClusterName   string    `json:"cluster_name,omitempty"`
 	UserID        string    `json:"user_id,omitempty"`
 	Timestamp     time.Time `json:"timestamp"`
 }
