@@ -11,6 +11,7 @@ type ComputeProfile struct {
 	ID            uuid.UUID `json:"id" db:"id"`
 	Name          string    `json:"name" db:"name"`
 	Slug          string    `json:"slug" db:"slug"`
+	SKU           string    `json:"sku" db:"sku"`
 	CPULimitM     int       `json:"cpu_limit_m" db:"cpu_limit_m"`
 	MemoryLimitMi int       `json:"memory_limit_mi" db:"memory_limit_mi"`
 	DisplayOrder  int       `json:"display_order" db:"display_order"`
