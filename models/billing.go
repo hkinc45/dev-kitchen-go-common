@@ -262,6 +262,9 @@ type Invoice struct {
 	InvoiceType          string        `json:"invoice_type" db:"invoice_type"`
 	Status               string        `json:"status" db:"status"`
 	SubtotalMicros       int64         `json:"subtotal_micros" db:"subtotal_micros"`
+	DiscountMicros       int64         `json:"discount_micros" db:"discount_micros"`
+	CouponID             *uuid.UUID    `json:"coupon_id,omitempty" db:"coupon_id"`
+	CouponCode           *string       `json:"coupon_code,omitempty" db:"coupon_code"`
 	TaxMicros            int64         `json:"tax_micros" db:"tax_micros"`
 	TotalMicros          int64         `json:"total_micros" db:"total_micros"`
 	CreditsAppliedMicros int64         `json:"credits_applied_micros" db:"credits_applied_micros"`
@@ -595,4 +598,42 @@ type MeterDefinition struct {
 	CreatedAt            time.Time              `json:"created_at" db:"created_at"`
 	UpdatedAt            time.Time              `json:"updated_at" db:"updated_at"`
 }
+
+// Coupon represents a discount campaign or promotional code.
+type Coupon struct {
+	ID                 uuid.UUID  `json:"id" db:"id"`
+	Code               string     `json:"code" db:"code"`
+	Name               string     `json:"name" db:"name"`
+	Description        *string    `json:"description,omitempty" db:"description"`
+	DiscountType       string     `json:"discount_type" db:"discount_type"` // 'percentage', 'fixed_amount'
+	DiscountValue      float64    `json:"discount_value" db:"discount_value"`
+	Currency           string     `json:"currency" db:"currency"`
+	Duration           string     `json:"duration" db:"duration"` // 'once', 'repeating', 'forever'
+	DurationInMonths   *int       `json:"duration_in_months,omitempty" db:"duration_in_months"`
+	MaxRedemptions     *int       `json:"max_redemptions,omitempty" db:"max_redemptions"`
+	TimesRedeemed      int        `json:"times_redeemed" db:"times_redeemed"`
+	ValidFrom          time.Time  `json:"valid_from" db:"valid_from"`
+	ValidUntil         *time.Time `json:"valid_until,omitempty" db:"valid_until"`
+	AppliesTo          string     `json:"applies_to" db:"applies_to"` // 'all', 'subscriptions_only', 'usage_only'
+	MinimumSpendMicros int64      `json:"minimum_spend_micros" db:"minimum_spend_micros"`
+	IsActive           bool       `json:"is_active" db:"is_active"`
+	CreatedAt          time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// AccountCouponRedemption tracks the application and lifecycle of a coupon on a billing account.
+type AccountCouponRedemption struct {
+	ID                         uuid.UUID  `json:"id" db:"id"`
+	BillingAccountID           uuid.UUID  `json:"billing_account_id" db:"billing_account_id"`
+	CouponID                   uuid.UUID  `json:"coupon_id" db:"coupon_id"`
+	Code                       string     `json:"code" db:"code"`
+	Status                     string     `json:"status" db:"status"` // 'active', 'used', 'expired', 'canceled'
+	RedeemedAt                 time.Time  `json:"redeemed_at" db:"redeemed_at"`
+	CyclesRemaining            *int       `json:"cycles_remaining,omitempty" db:"cycles_remaining"`
+	TotalDiscountAppliedMicros int64      `json:"total_discount_applied_micros" db:"total_discount_applied_micros"`
+	CreatedAt                  time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt                  time.Time  `json:"updated_at" db:"updated_at"`
+	Coupon                     *Coupon    `json:"coupon,omitempty" db:"-"`
+}
+
 

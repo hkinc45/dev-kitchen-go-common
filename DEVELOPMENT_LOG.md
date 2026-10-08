@@ -1,5 +1,27 @@
 # Development Log
 
+## Session: October 8, 2026
+
+*   **Feature: Enterprise Coupons & Promotions Engine Models (v0.5.47)**
+    *   **Goal:** Establish shared data models for enterprise promotional codes, coupon definitions, multi-cycle account redemption tracking, and invoice discount deduction attributes.
+    *   **Implementation:**
+        *   Added `Coupon` and `AccountCouponRedemption` structs to `models/billing.go`.
+        *   Updated `Invoice` struct with `DiscountMicros`, `CouponID`, and `CouponCode`.
+        *   Tagged and released `v0.5.47`.
+    *   **Verification:** Ran `go test ./...` passing cleanly.
+
+## Session: October 5, 2026
+
+*   **Feature: Hierarchical Infrastructure, Multi-Cluster Scheduling & Compound Rate Cards (v0.5.45)**
+    *   **Goal:** Establish shared data models for 3-tier infrastructure topology (`Provider`, `Region`, `Cluster`), cluster placement load metrics, compound regional rate cards, and multi-cluster telemetry.
+    *   **Implementation:**
+        *   Added `Provider`, `Region`, and enhanced `Cluster` models (`models/infrastructure.go`).
+        *   Added `ClusterLoadMetrics` and `ClusterPlacementDecision` structs.
+        *   Added `RegionID` and `TierMinimumUnits` to `RateCard` struct.
+        *   Updated `WorkloadTelemetryEvent` and `WorkloadTelemetryBatch` with `RegionID`, `ClusterID`, `ClusterName`, and `ComputeProfile`.
+        *   Tagged and released `v0.5.45`.
+    *   **Verification:** Verified Go tests with `go test ./...` passing cleanly.
+
 ## Session: October 3, 2026
 
 *   **Feature: Pricing Modes & Plug-and-Play Meter Definitions (v0.5.42)**
