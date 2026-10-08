@@ -283,8 +283,9 @@ type Invoice struct {
 	DeletedAt            *time.Time    `json:"deleted_at,omitempty" db:"deleted_at"`
 	SubscriptionPlanID   *uuid.UUID    `json:"subscription_plan_id,omitempty" db:"subscription_plan_id"`
 	PDFStoragePath       *string       `json:"pdf_storage_path,omitempty" db:"pdf_storage_path"`
-	CreatedAt            time.Time     `json:"created_at" db:"created_at"`
-	Items                []InvoiceItem `json:"items,omitempty" db:"-"`
+	CreatedAt            time.Time       `json:"created_at" db:"created_at"`
+	Items                []InvoiceItem   `json:"items,omitempty" db:"-"`
+	Coupons              []InvoiceCoupon `json:"coupons,omitempty" db:"-"`
 }
 
 // BillingPaymentTransaction records individual incoming payments, charges, and gateway transactions.
@@ -616,6 +617,7 @@ type Coupon struct {
 	ValidUntil         *time.Time `json:"valid_until,omitempty" db:"valid_until"`
 	AppliesTo          string     `json:"applies_to" db:"applies_to"` // 'all', 'subscriptions_only', 'usage_only'
 	MinimumSpendMicros int64      `json:"minimum_spend_micros" db:"minimum_spend_micros"`
+	IsStackable        bool       `json:"is_stackable" db:"is_stackable"`
 	IsActive           bool       `json:"is_active" db:"is_active"`
 	CreatedAt          time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at" db:"updated_at"`
@@ -634,6 +636,18 @@ type AccountCouponRedemption struct {
 	CreatedAt                  time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt                  time.Time  `json:"updated_at" db:"updated_at"`
 	Coupon                     *Coupon    `json:"coupon,omitempty" db:"-"`
+}
+
+// InvoiceCoupon represents an applied coupon record associated with an invoice.
+type InvoiceCoupon struct {
+	ID             uuid.UUID  `json:"id" db:"id"`
+	InvoiceID      uuid.UUID  `json:"invoice_id" db:"invoice_id"`
+	CouponID       uuid.UUID  `json:"coupon_id" db:"coupon_id"`
+	RedemptionID   *uuid.UUID `json:"redemption_id,omitempty" db:"redemption_id"`
+	Code           string     `json:"code" db:"code"`
+	DiscountMicros int64      `json:"discount_micros" db:"discount_micros"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	Coupon         *Coupon    `json:"coupon,omitempty" db:"-"`
 }
 
 
