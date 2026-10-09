@@ -381,18 +381,20 @@ type BillingAccountAuditLog struct {
 
 // WorkloadUsageEventPayload is published on workload.started and workload.stopped.
 type WorkloadUsageEventPayload struct {
-	WorkloadID    uuid.UUID `json:"workload_id"`
-	ProjectID     uuid.UUID `json:"project_id"`
-	CPULimitM     int       `json:"cpu_limit_m"`
-	MemoryLimitMi int       `json:"memory_limit_mi"`
-	ProductType   string    `json:"product_type,omitempty"`
-	Region        string    `json:"region,omitempty"`
-	RegionID      string    `json:"region_id,omitempty"`
-	ClusterID     string    `json:"cluster_id,omitempty"`
-	ClusterName   string    `json:"cluster_name,omitempty"`
-	SKU           string    `json:"sku,omitempty"`
-	UserID        string    `json:"user_id,omitempty"`
-	Timestamp     time.Time `json:"timestamp"`
+	WorkloadID     uuid.UUID `json:"workload_id"`
+	ProjectID      uuid.UUID `json:"project_id"`
+	CPULimitM      int       `json:"cpu_limit_m"`
+	MemoryLimitMi  int       `json:"memory_limit_mi"`
+	ProductType    string    `json:"product_type,omitempty"`
+	Region         string    `json:"region,omitempty"`
+	RegionID       string    `json:"region_id,omitempty"`
+	ClusterID      string    `json:"cluster_id,omitempty"`
+	ClusterName    string    `json:"cluster_name,omitempty"`
+	SKU            string    `json:"sku,omitempty"`
+	AllocationType string    `json:"allocation_type,omitempty"`
+	Multiplier     float64   `json:"multiplier,omitempty"`
+	UserID         string    `json:"user_id,omitempty"`
+	Timestamp      time.Time `json:"timestamp"`
 }
 
 // StorageUsageEventPayload is published on storage.allocated and storage.deleted.
