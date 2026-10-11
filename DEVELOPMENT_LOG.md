@@ -1,6 +1,16 @@
 # Development Log
 
-## Session: October 8, 2026
+## Session: October 11, 2026
+
+*   **Feature: Centralized Compute Profile SKU Inference & RFC 1123 Validation (v0.5.50)**
+    *   **Goal:** Centralize compute profile SKU inference ladder, allocation multiplier resolution, and RFC 1123 DNS-1035/1123 name validation/sanitization to eliminate code duplication across backend microservices and telemetry agents.
+    *   **Implementation:**
+        *   Added `InferWorkloadProfileSKU(cpu, ram)` and `ResolveAllocationMultiplier(type)` in `models/compute_profile.go` with zero-request default to `recipe.profile.1cpu-1gb`.
+        *   Added `validation/rfc1123.go` providing `ValidateRFC1123`, `ValidateProjectNameFormat`, `ValidateRecipeNameFormat`, `SanitizeRFC1123`, and `SanitizeDefaultProjectName`.
+        *   Added comprehensive table-driven unit tests in `models/compute_profile_test.go` and `validation/rfc1123_test.go`.
+        *   Tagged and released `v0.5.50`.
+    *   **Verification:** Ran `go test -v ./models/... ./validation/...` with 100% pass rate.
+
 
 *   **Feature: Enterprise Coupons & Promotions Engine Models (v0.5.47)**
     *   **Goal:** Establish shared data models for enterprise promotional codes, coupon definitions, multi-cycle account redemption tracking, and invoice discount deduction attributes.
