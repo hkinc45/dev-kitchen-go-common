@@ -45,9 +45,9 @@ func ValidateProjectNameFormat(name string) error {
 	return ValidateRFC1123(name, 3, 35, "project")
 }
 
-// ValidateRecipeNameFormat validates that a recipe name conforms to Dev Kitchen DNS-1035/1123 rules (3-30 chars).
+// ValidateRecipeNameFormat validates that a recipe name conforms to Dev Kitchen DNS-1035/1123 rules (2-40 chars).
 func ValidateRecipeNameFormat(name string) error {
-	return ValidateRFC1123(name, 3, 30, "recipe")
+	return ValidateRFC1123(name, 2, 40, "recipe")
 }
 
 // SanitizeRFC1123 cleans any raw string into a valid RFC 1123 string with a given maximum length ceiling.

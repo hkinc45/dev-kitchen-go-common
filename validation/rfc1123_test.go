@@ -40,9 +40,12 @@ func TestValidateProjectNameFormat(t *testing.T) {
 }
 
 func TestValidateRecipeNameFormat(t *testing.T) {
-	assert.NoError(t, ValidateRecipeNameFormat("web-app-1"))
-	assert.Error(t, ValidateRecipeNameFormat("a1234567890123456789012345678901")) // 31 chars > 30
-	assert.Error(t, ValidateRecipeNameFormat("web_app"))
+	assert.NoError(t, ValidateRecipeNameFormat("ab"))                                     // min 2 chars
+	assert.NoError(t, ValidateRecipeNameFormat("web-app-1"))                              // standard valid
+	assert.NoError(t, ValidateRecipeNameFormat("a12345678901234567890123456789012345678b")) // exactly 40 chars (1+38+1)
+	assert.Error(t, ValidateRecipeNameFormat("a"))                                       // 1 char < 2
+	assert.Error(t, ValidateRecipeNameFormat("a123456789012345678901234567890123456789b")) // 41 chars > 40
+	assert.Error(t, ValidateRecipeNameFormat("web_app"))                                 // underscore rejected
 }
 
 func TestSanitizeRFC1123(t *testing.T) {

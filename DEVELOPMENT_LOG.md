@@ -2,6 +2,14 @@
 
 ## Session: October 12, 2026
 
+*   **Feature: Recipe Name Range Unification & CI Validation Constants (v0.5.52)**
+    *   **Goal:** Unify recipe name length validation bounds across platform services (2-40 characters) and centralize CI job validation constants and duration clamps.
+    *   **Implementation:**
+        *   Updated `ValidateRecipeNameFormat` in `validation/rfc1123.go` to accept 2 to 40 characters (`ValidateRFC1123(name, 2, 40, "recipe")`), aligning with `dev-kitchen-core` and `dev_kitchen_1.0_client_dash`.
+        *   Added `validation/ci.go` defining `MaxCIDurationSeconds = 7200`, `IsValidJobTimestamp`, `IsValidJobTimestampUnix`, and `ClampCIDuration`.
+        *   Added unit tests in `validation/ci_test.go` and updated `validation/rfc1123_test.go`.
+    *   **Verification:** `go test -v ./validation/...` passed with 100% success rate.
+
 *   **Feature: Collision-Free Default Project Name Generator (v0.5.51)**
     *   **Goal:** Provide deterministic, collision-free default project naming (`project-<uuid[:8]>`) during user onboarding while preserving backwards compatibility for existing `<username>-default-project` patterns.
     *   **Implementation:**
