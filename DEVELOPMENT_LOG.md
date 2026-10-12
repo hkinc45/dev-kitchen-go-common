@@ -1,5 +1,55 @@
 # Development Log
 
+## Session: October 12, 2026
+
+*   **Feature: Recipe Name Range Unification & CI Validation Constants (v0.5.52)**
+    *   **Goal:** Unify recipe name length validation bounds across platform services (2-40 characters) and centralize CI job validation constants and duration clamps.
+    *   **Implementation:**
+        *   Updated `ValidateRecipeNameFormat` in `validation/rfc1123.go` to accept 2 to 40 characters (`ValidateRFC1123(name, 2, 40, "recipe")`), aligning with `dev-kitchen-core` and `dev_kitchen_1.0_client_dash`.
+        *   Added `validation/ci.go` defining `MaxCIDurationSeconds = 7200`, `IsValidJobTimestamp`, `IsValidJobTimestampUnix`, and `ClampCIDuration`.
+        *   Added unit tests in `validation/ci_test.go` and updated `validation/rfc1123_test.go`.
+    *   **Verification:** `go test -v ./validation/...` passed with 100% success rate.
+
+*   **Feature: Collision-Free Default Project Name Generator (v0.5.51)**
+    *   **Goal:** Provide deterministic, collision-free default project naming (`project-<uuid[:8]>`) during user onboarding while preserving backwards compatibility for existing `<username>-default-project` patterns.
+    *   **Implementation:**
+        *   Added `GenerateDefaultProjectName(rawUserID string) string` in `validation/rfc1123.go` producing 16-character RFC 1123 compliant names (`project-<uuid[:8]>`).
+        *   Maintained `SanitizeDefaultProjectName(rawName string) string` to ensure existing projects with legacy names continue to be sanitized without disruption.
+        *   Added unit tests in `validation/rfc1123_test.go` covering UUID inputs, short strings, and empty/hyphen fallbacks.
+    *   **Verification:** Ran `go test -v ./validation/...` with 100% pass rate.
+
+## Session: October 11, 2026
+
+*   **Feature: Centralized Compute Profile SKU Inference & RFC 1123 Validation (v0.5.50)**
+    *   **Goal:** Centralize compute profile SKU inference ladder, allocation multiplier resolution, and RFC 1123 DNS-1035/1123 name validation/sanitization to eliminate code duplication across backend microservices and telemetry agents.
+    *   **Implementation:**
+        *   Added `InferWorkloadProfileSKU(cpu, ram)` and `ResolveAllocationMultiplier(type)` in `models/compute_profile.go` with zero-request default to `recipe.profile.1cpu-1gb`.
+        *   Added `validation/rfc1123.go` providing `ValidateRFC1123`, `ValidateProjectNameFormat`, `ValidateRecipeNameFormat`, `SanitizeRFC1123`, and `SanitizeDefaultProjectName`.
+        *   Added comprehensive table-driven unit tests in `models/compute_profile_test.go` and `validation/rfc1123_test.go`.
+        *   Tagged and released `v0.5.50`.
+    *   **Verification:** Ran `go test -v ./models/... ./validation/...` with 100% pass rate.
+
+
+*   **Feature: Enterprise Coupons & Promotions Engine Models (v0.5.47)**
+    *   **Goal:** Establish shared data models for enterprise promotional codes, coupon definitions, multi-cycle account redemption tracking, and invoice discount deduction attributes.
+    *   **Implementation:**
+        *   Added `Coupon` and `AccountCouponRedemption` structs to `models/billing.go`.
+        *   Updated `Invoice` struct with `DiscountMicros`, `CouponID`, and `CouponCode`.
+        *   Tagged and released `v0.5.47`.
+    *   **Verification:** Ran `go test ./...` passing cleanly.
+
+## Session: October 5, 2026
+
+*   **Feature: Hierarchical Infrastructure, Multi-Cluster Scheduling & Compound Rate Cards (v0.5.45)**
+    *   **Goal:** Establish shared data models for 3-tier infrastructure topology (`Provider`, `Region`, `Cluster`), cluster placement load metrics, compound regional rate cards, and multi-cluster telemetry.
+    *   **Implementation:**
+        *   Added `Provider`, `Region`, and enhanced `Cluster` models (`models/infrastructure.go`).
+        *   Added `ClusterLoadMetrics` and `ClusterPlacementDecision` structs.
+        *   Added `RegionID` and `TierMinimumUnits` to `RateCard` struct.
+        *   Updated `WorkloadTelemetryEvent` and `WorkloadTelemetryBatch` with `RegionID`, `ClusterID`, `ClusterName`, and `ComputeProfile`.
+        *   Tagged and released `v0.5.45`.
+    *   **Verification:** Verified Go tests with `go test ./...` passing cleanly.
+
 ## Session: October 3, 2026
 
 *   **Feature: Pricing Modes & Plug-and-Play Meter Definitions (v0.5.42)**

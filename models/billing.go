@@ -178,6 +178,8 @@ type PlanAccountEnrollment struct {
 // RateCard defines unit prices for billable resource overages in USD micros.
 type RateCard struct {
 	SKU                string `json:"sku" db:"sku"`
+	RegionID           string `json:"region_id" db:"region_id"`
+	TierMinimumUnits   int64  `json:"tier_minimum_units" db:"tier_minimum_units"`
 	Name               string `json:"name" db:"name"`
 	Unit               string `json:"unit" db:"unit"`
 	PricePerUnitMicros int64  `json:"price_per_unit_micros" db:"price_per_unit_micros"`
@@ -260,6 +262,9 @@ type Invoice struct {
 	InvoiceType          string        `json:"invoice_type" db:"invoice_type"`
 	Status               string        `json:"status" db:"status"`
 	SubtotalMicros       int64         `json:"subtotal_micros" db:"subtotal_micros"`
+	DiscountMicros       int64         `json:"discount_micros" db:"discount_micros"`
+	CouponID             *uuid.UUID    `json:"coupon_id,omitempty" db:"coupon_id"`
+	CouponCode           *string       `json:"coupon_code,omitempty" db:"coupon_code"`
 	TaxMicros            int64         `json:"tax_micros" db:"tax_micros"`
 	TotalMicros          int64         `json:"total_micros" db:"total_micros"`
 	CreditsAppliedMicros int64         `json:"credits_applied_micros" db:"credits_applied_micros"`
@@ -278,8 +283,9 @@ type Invoice struct {
 	DeletedAt            *time.Time    `json:"deleted_at,omitempty" db:"deleted_at"`
 	SubscriptionPlanID   *uuid.UUID    `json:"subscription_plan_id,omitempty" db:"subscription_plan_id"`
 	PDFStoragePath       *string       `json:"pdf_storage_path,omitempty" db:"pdf_storage_path"`
-	CreatedAt            time.Time     `json:"created_at" db:"created_at"`
-	Items                []InvoiceItem `json:"items,omitempty" db:"-"`
+	CreatedAt            time.Time       `json:"created_at" db:"created_at"`
+	Items                []InvoiceItem   `json:"items,omitempty" db:"-"`
+	Coupons              []InvoiceCoupon `json:"coupons,omitempty" db:"-"`
 }
 
 // BillingPaymentTransaction records individual incoming payments, charges, and gateway transactions.
@@ -375,14 +381,20 @@ type BillingAccountAuditLog struct {
 
 // WorkloadUsageEventPayload is published on workload.started and workload.stopped.
 type WorkloadUsageEventPayload struct {
-	WorkloadID    uuid.UUID `json:"workload_id"`
-	ProjectID     uuid.UUID `json:"project_id"`
-	CPULimitM     int       `json:"cpu_limit_m"`
-	MemoryLimitMi int       `json:"memory_limit_mi"`
-	ProductType   string    `json:"product_type,omitempty"`
-	Region        string    `json:"region,omitempty"`
-	UserID        string    `json:"user_id,omitempty"`
-	Timestamp     time.Time `json:"timestamp"`
+	WorkloadID     uuid.UUID `json:"workload_id"`
+	ProjectID      uuid.UUID `json:"project_id"`
+	CPULimitM      int       `json:"cpu_limit_m"`
+	MemoryLimitMi  int       `json:"memory_limit_mi"`
+	ProductType    string    `json:"product_type,omitempty"`
+	Region         string    `json:"region,omitempty"`
+	RegionID       string    `json:"region_id,omitempty"`
+	ClusterID      string    `json:"cluster_id,omitempty"`
+	ClusterName    string    `json:"cluster_name,omitempty"`
+	SKU            string    `json:"sku,omitempty"`
+	AllocationType string    `json:"allocation_type,omitempty"`
+	Multiplier     float64   `json:"multiplier,omitempty"`
+	UserID         string    `json:"user_id,omitempty"`
+	Timestamp      time.Time `json:"timestamp"`
 }
 
 // StorageUsageEventPayload is published on storage.allocated and storage.deleted.
@@ -589,4 +601,55 @@ type MeterDefinition struct {
 	CreatedAt            time.Time              `json:"created_at" db:"created_at"`
 	UpdatedAt            time.Time              `json:"updated_at" db:"updated_at"`
 }
+
+// Coupon represents a discount campaign or promotional code.
+type Coupon struct {
+	ID                 uuid.UUID  `json:"id" db:"id"`
+	Code               string     `json:"code" db:"code"`
+	Name               string     `json:"name" db:"name"`
+	Description        *string    `json:"description,omitempty" db:"description"`
+	DiscountType       string     `json:"discount_type" db:"discount_type"` // 'percentage', 'fixed_amount'
+	DiscountValue      float64    `json:"discount_value" db:"discount_value"`
+	Currency           string     `json:"currency" db:"currency"`
+	Duration           string     `json:"duration" db:"duration"` // 'once', 'repeating', 'forever'
+	DurationInMonths   *int       `json:"duration_in_months,omitempty" db:"duration_in_months"`
+	MaxRedemptions     *int       `json:"max_redemptions,omitempty" db:"max_redemptions"`
+	TimesRedeemed      int        `json:"times_redeemed" db:"times_redeemed"`
+	ValidFrom          time.Time  `json:"valid_from" db:"valid_from"`
+	ValidUntil         *time.Time `json:"valid_until,omitempty" db:"valid_until"`
+	AppliesTo          string     `json:"applies_to" db:"applies_to"` // 'all', 'subscriptions_only', 'usage_only'
+	MinimumSpendMicros int64      `json:"minimum_spend_micros" db:"minimum_spend_micros"`
+	IsStackable        bool       `json:"is_stackable" db:"is_stackable"`
+	IsActive           bool       `json:"is_active" db:"is_active"`
+	CreatedAt          time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// AccountCouponRedemption tracks the application and lifecycle of a coupon on a billing account.
+type AccountCouponRedemption struct {
+	ID                         uuid.UUID  `json:"id" db:"id"`
+	BillingAccountID           uuid.UUID  `json:"billing_account_id" db:"billing_account_id"`
+	CouponID                   uuid.UUID  `json:"coupon_id" db:"coupon_id"`
+	Code                       string     `json:"code" db:"code"`
+	Status                     string     `json:"status" db:"status"` // 'active', 'used', 'expired', 'canceled'
+	RedeemedAt                 time.Time  `json:"redeemed_at" db:"redeemed_at"`
+	CyclesRemaining            *int       `json:"cycles_remaining,omitempty" db:"cycles_remaining"`
+	TotalDiscountAppliedMicros int64      `json:"total_discount_applied_micros" db:"total_discount_applied_micros"`
+	CreatedAt                  time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt                  time.Time  `json:"updated_at" db:"updated_at"`
+	Coupon                     *Coupon    `json:"coupon,omitempty" db:"-"`
+}
+
+// InvoiceCoupon represents an applied coupon record associated with an invoice.
+type InvoiceCoupon struct {
+	ID             uuid.UUID  `json:"id" db:"id"`
+	InvoiceID      uuid.UUID  `json:"invoice_id" db:"invoice_id"`
+	CouponID       uuid.UUID  `json:"coupon_id" db:"coupon_id"`
+	RedemptionID   *uuid.UUID `json:"redemption_id,omitempty" db:"redemption_id"`
+	Code           string     `json:"code" db:"code"`
+	DiscountMicros int64      `json:"discount_micros" db:"discount_micros"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	Coupon         *Coupon    `json:"coupon,omitempty" db:"-"`
+}
+
 
