@@ -77,6 +77,20 @@ func SanitizeRFC1123(rawName string, maxLen int, fallback string) string {
 
 // SanitizeDefaultProjectName cleans an onboarding username into a valid RFC 1123 project prefix
 // capped at 29 characters to leave room for conflict retry suffixes.
+// Preserves compatibility with legacy "<username>-default-project" naming patterns.
 func SanitizeDefaultProjectName(rawName string) string {
 	return SanitizeRFC1123(rawName, 29, "default-project")
+}
+
+// GenerateDefaultProjectName produces a collision-free RFC 1123 compliant default project name
+// following the pattern "project-<uuid[:8]>" (e.g. "project-11b31c16", exactly 16 characters).
+// If rawUserID is empty or lacks alphanumeric characters, it safely defaults to "project-default".
+func GenerateDefaultProjectName(rawUserID string) string {
+	clean := strings.ReplaceAll(strings.TrimSpace(rawUserID), "-", "")
+	clean = strings.ToLower(clean)
+	if len(clean) >= 8 {
+		clean = clean[:8]
+	}
+	clean = SanitizeRFC1123(clean, 8, "default")
+	return fmt.Sprintf("project-%s", clean)
 }

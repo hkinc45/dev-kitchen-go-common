@@ -72,3 +72,27 @@ func TestSanitizeDefaultProjectName(t *testing.T) {
 		})
 	}
 }
+
+func TestGenerateDefaultProjectName(t *testing.T) {
+	tests := []struct {
+		userID   string
+		expected string
+	}{
+		{"11b31c16-bb1a-445f-a8f0-4da700e5d352", "project-11b31c16"},
+		{"550e8400-e29b-41d4-a716-446655440000", "project-550e8400"},
+		{"a1b2c3d4", "project-a1b2c3d4"},
+		{"abc", "project-abc"},
+		{"", "project-default"},
+		{"---", "project-default"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.userID, func(t *testing.T) {
+			res := GenerateDefaultProjectName(tc.userID)
+			assert.Equal(t, tc.expected, res)
+			assert.LessOrEqual(t, len(res), 29)
+			assert.NoError(t, ValidateProjectNameFormat(res))
+		})
+	}
+}
+
