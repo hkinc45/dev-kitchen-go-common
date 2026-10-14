@@ -9,6 +9,109 @@ func strPtr(s string) *string {
 	return &s
 }
 
+func TestNormalizePhoneWithCountry(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		rawPhone    string
+		country     string
+		wantPhone   string
+		wantCountry string
+	}{
+		{
+			name:        "USA alias with legacy hyphenated number",
+			rawPhone:    "123-555-0123",
+			country:     "USA",
+			wantPhone:   "+1 123 555 0123",
+			wantCountry: "United States",
+		},
+		{
+			name:        "Nigeria local number with trunk 0",
+			rawPhone:    "08031234567",
+			country:     "Nigeria",
+			wantPhone:   "+234 803 123 4567",
+			wantCountry: "Nigeria",
+		},
+		{
+			name:        "Nigeria ISO code with unprefixed 234 digits",
+			rawPhone:    "2348031234567",
+			country:     "NG",
+			wantPhone:   "+234 803 123 4567",
+			wantCountry: "Nigeria",
+		},
+		{
+			name:        "UK alias with local trunk 0 number",
+			rawPhone:    "07911 123456",
+			country:     "UK",
+			wantPhone:   "+44 791 112 3456",
+			wantCountry: "United Kingdom",
+		},
+		{
+			name:        "Already prefixed international phone with trunk 0 after dial code",
+			rawPhone:    "+23408031234567",
+			country:     "Nigeria",
+			wantPhone:   "+234 803 123 4567",
+			wantCountry: "Nigeria",
+		},
+		{
+			name:        "Already normalized international phone is idempotent",
+			rawPhone:    "+234 803 123 4567",
+			country:     "Nigeria",
+			wantPhone:   "+234 803 123 4567",
+			wantCountry: "Nigeria",
+		},
+		{
+			name:        "Empty phone with country alias still normalizes country",
+			rawPhone:    "",
+			country:     "US",
+			wantPhone:   "",
+			wantCountry: "United States",
+		},
+		{
+			name:        "Ghana local number",
+			rawPhone:    "024 123 4567",
+			country:     "Ghana",
+			wantPhone:   "+233 241 234 567",
+			wantCountry: "Ghana",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotPhone, gotCountry := NormalizePhoneWithCountry(tt.rawPhone, tt.country)
+			if gotPhone != tt.wantPhone {
+				t.Errorf("NormalizePhoneWithCountry(%q, %q) phone = %q, want %q", tt.rawPhone, tt.country, gotPhone, tt.wantPhone)
+			}
+			if gotCountry != tt.wantCountry {
+				t.Errorf("NormalizePhoneWithCountry(%q, %q) country = %q, want %q", tt.rawPhone, tt.country, gotCountry, tt.wantCountry)
+			}
+		})
+	}
+}
+
+func TestNormalizeUserPhoneAndCountry(t *testing.T) {
+	t.Parallel()
+
+	u := &User{
+		PhoneNumber: strPtr("123-555-0123"),
+		Country:     strPtr("USA"),
+	}
+	if !NormalizeUserPhoneAndCountry(u) {
+		t.Fatalf("expected NormalizeUserPhoneAndCountry to return true for legacy USA user")
+	}
+	if *u.PhoneNumber != "+1 123 555 0123" {
+		t.Errorf("got PhoneNumber %q, want %q", *u.PhoneNumber, "+1 123 555 0123")
+	}
+	if *u.Country != "United States" {
+		t.Errorf("got Country %q, want %q", *u.Country, "United States")
+	}
+	if NormalizeUserPhoneAndCountry(u) {
+		t.Errorf("expected second NormalizeUserPhoneAndCountry call to be idempotent and return false")
+	}
+}
+
 func TestCalculateProfileCompletion(t *testing.T) {
 	t.Parallel()
 
@@ -34,10 +137,10 @@ func TestCalculateProfileCompletion(t *testing.T) {
 	})
 
 	tests := []struct {
-		name            string
-		user            *User
-		wantPct         int
-		wantMissingLen  int
+		name              string
+		user              *User
+		wantPct           int
+		wantMissingLen    int
 		wantContainsField string
 	}{
 		{
@@ -47,10 +150,10 @@ func TestCalculateProfileCompletion(t *testing.T) {
 			wantMissingLen: 0,
 		},
 		{
-			name:           "empty user returns 0% and 14 missing fields",
-			user:           &User{},
-			wantPct:        0,
-			wantMissingLen: 14,
+			name:              "empty user returns 0% and 14 missing fields",
+			user:              &User{},
+			wantPct:           0,
+			wantMissingLen:    14,
 			wantContainsField: "account_type",
 		},
 		{
