@@ -359,13 +359,23 @@ func formatLocalPhoneDigits(rawDigits string) string {
 	return digits[:3] + " " + digits[3:7] + " " + digits[7:]
 }
 
-// NormalizePhoneWithCountry normalizes a raw phone string and country string into an international
-// E.164-prefixed display format ("+<dial_code> <grouped_digits>") and canonical country name.
-func NormalizePhoneWithCountry(rawPhone string, country string) (normalizedPhone string, canonicalCountry string) {
-	canonicalCountry, fallbackDialCode := ResolveCountryAndDialCode(country)
-	trimmed := strings.TrimSpace(rawPhone)
-	if trimmed == "" {
-		return "", canonicalCountry
+// SplitAndNormalizePhone separates and normalizes a phone country dial code ("+234"),
+// a clean local subscriber phone number ("8031234567" — digits only, without dial code or trunk 0),
+// and a canonical country name ("Nigeria").
+func SplitAndNormalizePhone(rawPhoneCode, rawPhone, rawCountry string) (dialCode string, localNumber string, canonicalCountry string) {
+	canonicalCountry, countryDialCode := ResolveCountryAndDialCode(rawCountry)
+
+	cleanedCodeDigits := extractDigitsOnly(rawPhoneCode)
+	if cleanedCodeDigits != "" {
+		dialCode = "+" + cleanedCodeDigits
+	}
+
+	trimmedPhone := strings.TrimSpace(rawPhone)
+	if trimmedPhone == "" {
+		if dialCode == "" && strings.TrimSpace(rawCountry) != "" {
+			dialCode = countryDialCode
+		}
+		return dialCode, "", canonicalCountry
 	}
 
 	compact := strings.Map(func(r rune) rune {
@@ -375,68 +385,99 @@ func NormalizePhoneWithCountry(rawPhone string, country string) (normalizedPhone
 		default:
 			return r
 		}
-	}, trimmed)
-
-	detectedCode := fallbackDialCode
-	localDigits := ""
+	}, trimmedPhone)
 
 	if strings.HasPrefix(compact, "+") {
-		matchedDial := ""
-		for _, code := range sortedDialCodes {
-			if strings.HasPrefix(compact, code) {
-				matchedDial = code
-				break
-			}
-		}
-		if matchedDial != "" {
-			detectedCode = matchedDial
-			localDigits = extractDigitsOnly(compact[len(matchedDial):])
+		if dialCode != "" && strings.HasPrefix(compact, dialCode) {
+			localNumber = extractDigitsOnly(compact[len(dialCode):])
 		} else {
-			// Generic fallback for unlisted +1..3 digit prefix
-			rest := compact[1:]
-			prefixLen := 0
-			for prefixLen < len(rest) && prefixLen < 3 && unicode.IsDigit(rune(rest[prefixLen])) {
-				prefixLen++
+			matchedDial := ""
+			for _, code := range sortedDialCodes {
+				if strings.HasPrefix(compact, code) {
+					matchedDial = code
+					break
+				}
 			}
-			if prefixLen > 0 {
-				detectedCode = "+" + rest[:prefixLen]
-				localDigits = extractDigitsOnly(rest[prefixLen:])
+			if matchedDial != "" {
+				if dialCode == "" {
+					dialCode = matchedDial
+				}
+				localNumber = extractDigitsOnly(compact[len(matchedDial):])
 			} else {
-				localDigits = extractDigitsOnly(rest)
+				rest := compact[1:]
+				prefixLen := 0
+				for prefixLen < len(rest) && prefixLen < 3 && unicode.IsDigit(rune(rest[prefixLen])) {
+					prefixLen++
+				}
+				if prefixLen > 0 {
+					if dialCode == "" {
+						dialCode = "+" + rest[:prefixLen]
+					}
+					localNumber = extractDigitsOnly(rest[prefixLen:])
+				} else {
+					localNumber = extractDigitsOnly(rest)
+				}
 			}
 		}
-		if len(localDigits) > 9 && strings.HasPrefix(localDigits, "0") {
-			localDigits = strings.TrimLeft(localDigits, "0")
+		if strings.HasPrefix(localNumber, "0") && (dialCode != "+1" || len(localNumber) > 10) {
+			localNumber = strings.TrimLeft(localNumber, "0")
 		}
 	} else {
 		digitsOnly := extractDigitsOnly(compact)
-		codeDigits := strings.TrimPrefix(detectedCode, "+")
+		if dialCode == "" {
+			dialCode = countryDialCode
+		}
+		codeDigits := strings.TrimPrefix(dialCode, "+")
 		if codeDigits != "" && len(digitsOnly) >= len(codeDigits)+10 && strings.HasPrefix(digitsOnly, codeDigits) {
-			localDigits = digitsOnly[len(codeDigits):]
-			if len(localDigits) > 9 && strings.HasPrefix(localDigits, "0") {
-				localDigits = strings.TrimLeft(localDigits, "0")
+			localNumber = digitsOnly[len(codeDigits):]
+			if strings.HasPrefix(localNumber, "0") && (dialCode != "+1" || len(localNumber) > 10) {
+				localNumber = strings.TrimLeft(localNumber, "0")
 			}
-		} else if strings.HasPrefix(digitsOnly, "0") && (detectedCode != "+1" || len(digitsOnly) > 10) {
-			localDigits = strings.TrimLeft(digitsOnly, "0")
+		} else if strings.HasPrefix(digitsOnly, "0") && (dialCode != "+1" || len(digitsOnly) > 10) {
+			localNumber = strings.TrimLeft(digitsOnly, "0")
 		} else {
-			localDigits = digitsOnly
+			localNumber = digitsOnly
 		}
 	}
 
-	if len(localDigits) > 14 {
-		localDigits = localDigits[:14]
+	if len(localNumber) > 14 {
+		localNumber = localNumber[:14]
 	}
+	if localNumber == "" {
+		return dialCode, "", canonicalCountry
+	}
+
+	return dialCode, localNumber, canonicalCountry
+}
+
+// FormatE164Phone combines a dial code (e.g. "+234") and local subscriber digits (e.g. "8031234567")
+// into a compact ITU-T E.164 string ("+2348031234567") for Keycloak attributes or SMS gateways.
+func FormatE164Phone(dialCode, localNumber string) string {
+	digits := extractDigitsOnly(localNumber)
+	if digits == "" {
+		return ""
+	}
+	codeDigits := extractDigitsOnly(dialCode)
+	if codeDigits == "" {
+		return "+" + digits
+	}
+	return "+" + codeDigits + digits
+}
+
+// NormalizePhoneWithCountry normalizes a raw phone string and country string into an international
+// E.164-prefixed display format ("+<dial_code> <grouped_digits>") and canonical country name.
+func NormalizePhoneWithCountry(rawPhone string, country string) (normalizedPhone string, canonicalCountry string) {
+	dialCode, localDigits, canonicalCountry := SplitAndNormalizePhone("", rawPhone, country)
 	if localDigits == "" {
 		return "", canonicalCountry
 	}
-
 	formattedLocal := formatLocalPhoneDigits(localDigits)
-	return detectedCode + " " + formattedLocal, canonicalCountry
+	return dialCode + " " + formattedLocal, canonicalCountry
 }
 
-// NormalizeUserPhoneAndCountry normalizes u.PhoneNumber (prepending the country's dial code if missing)
-// and u.Country (resolving aliases like "USA" or "UK" to canonical names) in-place.
-// Returns true if either u.PhoneNumber or u.Country was modified.
+// NormalizeUserPhoneAndCountry normalizes u.PhoneCountryCode ("+234"), u.PhoneNumber ("8031234567" — clean
+// local subscriber digits), u.Country ("Nigeria" — canonical name), and KycProfile.AuthorizedRepPhoneCountryCode /
+// AuthorizedRepPhone in-place. Returns true if any field on u was modified.
 func NormalizeUserPhoneAndCountry(u *User) bool {
 	if u == nil {
 		return false
@@ -446,21 +487,65 @@ func NormalizeUserPhoneAndCountry(u *User) bool {
 	if u.Country != nil {
 		rawCountry = *u.Country
 	}
+	rawPhoneCode := ""
+	if u.PhoneCountryCode != nil {
+		rawPhoneCode = *u.PhoneCountryCode
+	}
 	rawPhone := ""
 	if u.PhoneNumber != nil {
 		rawPhone = *u.PhoneNumber
 	}
 
-	normPhone, normCountry := NormalizePhoneWithCountry(rawPhone, rawCountry)
+	dialCode, localNumber, normCountry := SplitAndNormalizePhone(rawPhoneCode, rawPhone, rawCountry)
 	changed := false
 
 	if hasNonEmptyPtr(u.Country) && normCountry != "" && *u.Country != normCountry {
 		u.Country = &normCountry
 		changed = true
 	}
-	if hasNonEmptyPtr(u.PhoneNumber) && normPhone != "" && *u.PhoneNumber != normPhone {
-		u.PhoneNumber = &normPhone
+
+	if hasNonEmptyPtr(u.PhoneNumber) {
+		if localNumber != "" && *u.PhoneNumber != localNumber {
+			u.PhoneNumber = &localNumber
+			changed = true
+		}
+		if dialCode != "" && (u.PhoneCountryCode == nil || *u.PhoneCountryCode != dialCode) {
+			u.PhoneCountryCode = &dialCode
+			changed = true
+		}
+	} else if hasNonEmptyPtr(u.PhoneCountryCode) && dialCode != "" && *u.PhoneCountryCode != dialCode {
+		u.PhoneCountryCode = &dialCode
 		changed = true
+	}
+
+	if len(u.KycProfile) > 0 {
+		var kycMap map[string]interface{}
+		if err := json.Unmarshal(u.KycProfile, &kycMap); err == nil && len(kycMap) > 0 {
+			repPhone, _ := kycMap["authorized_rep_phone"].(string)
+			repCode, _ := kycMap["authorized_rep_phone_country_code"].(string)
+			if strings.TrimSpace(repPhone) != "" || strings.TrimSpace(repCode) != "" {
+				repCountry, _ := kycMap["country_of_incorporation"].(string)
+				if strings.TrimSpace(repCountry) == "" {
+					repCountry = normCountry
+				}
+				normRepCode, normRepPhone, _ := SplitAndNormalizePhone(repCode, repPhone, repCountry)
+				kycUpdated := false
+				if normRepPhone != "" && repPhone != normRepPhone {
+					kycMap["authorized_rep_phone"] = normRepPhone
+					kycUpdated = true
+				}
+				if normRepCode != "" && repCode != normRepCode {
+					kycMap["authorized_rep_phone_country_code"] = normRepCode
+					kycUpdated = true
+				}
+				if kycUpdated {
+					if b, err := json.Marshal(kycMap); err == nil {
+						u.KycProfile = json.RawMessage(b)
+						changed = true
+					}
+				}
+			}
+		}
 	}
 
 	return changed
@@ -475,13 +560,18 @@ type KYCProfilePayload struct {
 	IDDocumentNumber string `json:"id_document_number,omitempty"`
 
 	// Business KYB fields
-	CompanyLegalName   string `json:"company_legal_name,omitempty"`
-	RegistrationNumber string `json:"registration_number,omitempty"`
-	TaxID              string `json:"tax_id,omitempty"`
-	Industry           string `json:"industry,omitempty"`
-	CompanySize        string `json:"company_size,omitempty"`
-	Website            string `json:"website,omitempty"`
-	AuthorizedRepRole  string `json:"authorized_rep_role,omitempty"`
+	CompanyLegalName              string `json:"company_legal_name,omitempty"`
+	RegistrationNumber            string `json:"registration_number,omitempty"`
+	TaxID                         string `json:"tax_id,omitempty"`
+	CountryOfIncorporation        string `json:"country_of_incorporation,omitempty"`
+	Industry                      string `json:"industry,omitempty"`
+	CompanySize                   string `json:"company_size,omitempty"`
+	Website                       string `json:"website,omitempty"`
+	AuthorizedRepName             string `json:"authorized_rep_name,omitempty"`
+	AuthorizedRepRole             string `json:"authorized_rep_role,omitempty"`
+	AuthorizedRepEmail            string `json:"authorized_rep_email,omitempty"`
+	AuthorizedRepPhoneCountryCode string `json:"authorized_rep_phone_country_code,omitempty" db:"authorized_rep_phone_country_code"`
+	AuthorizedRepPhone            string `json:"authorized_rep_phone,omitempty"`
 }
 
 // NotificationPreferencesPayload represents the structured notification settings stored on a user profile.
@@ -503,6 +593,7 @@ type User struct {
 	UpdatedAt                   time.Time           `json:"updated_at"`
 	FirstName                   *string             `json:"first_name,omitempty"`
 	LastName                    *string             `json:"last_name,omitempty"`
+	PhoneCountryCode            *string             `json:"phone_country_code,omitempty" db:"phone_country_code"`
 	PhoneNumber                 *string             `json:"phone_number,omitempty"`
 	AccountType                 *string             `json:"account_type,omitempty"` // e.g., "personal" or "business"
 	PreferredCurrency           *string             `json:"preferred_currency,omitempty" db:"preferred_currency"`
@@ -535,7 +626,7 @@ func hasNonEmptyStr(s string) bool {
 
 // CalculateProfileCompletion computes a deterministic 0-100% completion score and ordered list of missing fields.
 // Base Mandatory Fields account for 50% of the score; Extended Address & KYC/KYB Fields account for 50%.
-// Also normalizes u.PhoneNumber and u.Country in-place via NormalizeUserPhoneAndCountry.
+// Also normalizes u.PhoneCountryCode, u.PhoneNumber, and u.Country in-place via NormalizeUserPhoneAndCountry.
 func CalculateProfileCompletion(u *User) (int, []string) {
 	if u == nil {
 		return 0, nil
