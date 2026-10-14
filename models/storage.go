@@ -84,3 +84,109 @@ type ObjectItem struct {
 	ContentType  string    `json:"content_type"`
 	StorageClass string    `json:"storage_class"`
 }
+
+// StorageDriverType identifies the underlying Kubernetes CSI / block storage provider.
+type StorageDriverType string
+
+const (
+	StorageDriverLonghorn    StorageDriverType = "longhorn"
+	StorageDriverCSISnapshot StorageDriverType = "csi-snapshot"
+	StorageDriverStandard    StorageDriverType = "standard"
+)
+
+// BackupScheduleOption describes an available recurring backup/snapshot schedule tier.
+type BackupScheduleOption struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Cron   string `json:"cron"`
+	Retain int    `json:"retain"`
+	Task   string `json:"task"`
+}
+
+// VolumeDataSource represents the CSI dataSource used to populate a PVC.
+type VolumeDataSource struct {
+	APIGroup string `json:"api_group,omitempty"`
+	Kind     string `json:"kind"`
+	Name     string `json:"name"`
+}
+
+// VolumeRecord represents a normalized view of a project PVC and its backup schedule.
+type VolumeRecord struct {
+	Name                  string            `json:"name"`
+	Namespace             string            `json:"namespace"`
+	ProjectID             string            `json:"project_id"`
+	RecipeID              string            `json:"recipe_id,omitempty"`
+	RecipeName            string            `json:"recipe_name,omitempty"`
+	StorageClass          string            `json:"storage_class"`
+	DriverType            StorageDriverType `json:"driver_type"`
+	CapacityGB            int               `json:"capacity_gb"`
+	SizeGiB               int               `json:"size_gib"`
+	Capacity              string            `json:"capacity"`
+	Status                string            `json:"status"`
+	Phase                 string            `json:"phase"`
+	VolumeName            string            `json:"volume_name,omitempty"`
+	AccessModes           []string          `json:"access_modes"`
+	BackupSchedule        string            `json:"backup_schedule"`
+	SupportsSnapshots     bool              `json:"supports_snapshots"`
+	SupportsRemoteBackups bool              `json:"supports_remote_backups"`
+	FromBackup            string            `json:"from_backup,omitempty"`
+	DataSource            *VolumeDataSource `json:"data_source,omitempty"`
+	CreatedAt             time.Time         `json:"created_at"`
+}
+
+// SnapshotRecord represents a normalized CSI VolumeSnapshot or Longhorn Backup.
+type SnapshotRecord struct {
+	ID                  string            `json:"id"`
+	Name                string            `json:"name"`
+	Namespace           string            `json:"namespace,omitempty"`
+	VolumeName          string            `json:"volume_name,omitempty"`
+	PVCName             string            `json:"pvc_name"`
+	ProjectID           string            `json:"project_id"`
+	RecipeID            string            `json:"recipe_id,omitempty"`
+	RecipeName          string            `json:"recipe_name,omitempty"`
+	Type                string            `json:"type"` // "snapshot" or "backup"
+	DriverType          StorageDriverType `json:"driver_type"`
+	VolumeSnapshotClass string            `json:"volume_snapshot_class,omitempty"`
+	SizeBytes           int64             `json:"size_bytes"`
+	SizeGiB             int               `json:"size_gib"`
+	RestoreSize         string            `json:"restore_size,omitempty"`
+	Status              string            `json:"status"` // "ready", "pending", "error"
+	ReadyToUse          bool              `json:"ready_to_use"`
+	BackupURL           string            `json:"backup_url,omitempty"`
+	CreatedAt           time.Time         `json:"created_at"`
+}
+
+// UpdateBackupPolicyRequest defines the payload to update a PVC's recurring backup schedule.
+type UpdateBackupPolicyRequest struct {
+	Schedule string `json:"schedule"` // "none", "hourly", "daily", "weekly"
+	Retain   int    `json:"retain,omitempty"`
+	Task     string `json:"task,omitempty"`
+}
+
+// CreateSnapshotRequest defines the payload to create a CSI VolumeSnapshot or backup.
+type CreateSnapshotRequest struct {
+	PVCName             string            `json:"pvc_name"`
+	Name                string            `json:"name,omitempty"`
+	Type                string            `json:"type,omitempty"` // "snapshot" (default) or "backup"
+	VolumeSnapshotClass string            `json:"volume_snapshot_class,omitempty"`
+	RecipeName          string            `json:"recipe_name,omitempty"`
+	Labels              map[string]string `json:"labels,omitempty"`
+}
+
+// CreateVolumeFromSnapshotRequest defines the payload to provision a new PVC from a snapshot, clone, or remote backup.
+type CreateVolumeFromSnapshotRequest struct {
+	Name               string `json:"name"`
+	SourceSnapshotName string `json:"source_snapshot_name,omitempty"`
+	SnapshotName       string `json:"snapshot_name,omitempty"`
+	SourcePVCName      string `json:"source_pvc_name,omitempty"`
+	SourceKind         string `json:"source_kind,omitempty"`
+	FromBackupURL      string `json:"from_backup_url,omitempty"`
+	StorageClass       string `json:"storage_class,omitempty"`
+	CapacityGB         int    `json:"capacity_gb,omitempty"`
+	SizeGiB            int    `json:"size_gib,omitempty"`
+	AccessMode         string `json:"access_mode,omitempty"`
+	BackupSchedule     string `json:"backup_schedule,omitempty"`
+	RecipeID           string `json:"recipe_id,omitempty"`
+	RecipeName         string `json:"recipe_name,omitempty"`
+}
+
