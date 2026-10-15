@@ -1,6 +1,9 @@
 package models
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +20,16 @@ const (
 	BucketStatusCreating = "creating"
 	BucketStatusDeleting = "deleting"
 	BucketStatusError    = "error"
+)
+
+// Standard storage billing SKUs
+const (
+	StorageSKUBlockStandard   = "storage.block.gb"
+	StorageSKUBlockReplicated = "storage.block.replicated.gb"
+	StorageSKUNFS             = "storage.nfs.gb"
+	StorageSKUEphemeral       = "storage.ephemeral.gb"
+	StorageSKUBackup          = "storage.backup.gb"
+	StorageSKUPVCDefault      = "storage.pvc.gb_month"
 )
 
 // Bucket represents an S3-compliant object storage bucket.
@@ -118,6 +131,8 @@ type VolumeRecord struct {
 	RecipeID              string            `json:"recipe_id,omitempty"`
 	RecipeName            string            `json:"recipe_name,omitempty"`
 	StorageClass          string            `json:"storage_class"`
+	StorageSKU            string            `json:"storage_sku,omitempty"`
+	ReplicationFactor     int               `json:"replication_factor,omitempty"`
 	DriverType            StorageDriverType `json:"driver_type"`
 	CapacityGB            int               `json:"capacity_gb"`
 	SizeGiB               int               `json:"size_gib"`
@@ -160,7 +175,7 @@ type SnapshotRecord struct {
 type UpdateBackupPolicyRequest struct {
 	Schedule string `json:"schedule"` // "none", "hourly", "daily", "weekly"
 	Retain   int    `json:"retain,omitempty"`
-	Task     string `json:"task,omitempty"`
+	Task     string    `json:"task,omitempty"`
 }
 
 // CreateSnapshotRequest defines the payload to create a CSI VolumeSnapshot or backup.
@@ -182,6 +197,8 @@ type CreateVolumeFromSnapshotRequest struct {
 	SourceKind         string `json:"source_kind,omitempty"`
 	FromBackupURL      string `json:"from_backup_url,omitempty"`
 	StorageClass       string `json:"storage_class,omitempty"`
+	StorageSKU         string `json:"storage_sku,omitempty"`
+	ReplicationFactor  int    `json:"replication_factor,omitempty"`
 	CapacityGB         int    `json:"capacity_gb,omitempty"`
 	SizeGiB            int    `json:"size_gib,omitempty"`
 	AccessMode         string `json:"access_mode,omitempty"`
@@ -189,4 +206,85 @@ type CreateVolumeFromSnapshotRequest struct {
 	RecipeID           string `json:"recipe_id,omitempty"`
 	RecipeName         string `json:"recipe_name,omitempty"`
 }
+
+// ResolveStorageReplicationFactor determines the effective replica count (1..5) for a storage volume
+// from an explicit replica count or by inspecting the Kubernetes StorageClass name.
+func ResolveStorageReplicationFactor(storageClass string, explicitReplicas int) int {
+	if explicitReplicas >= 1 && explicitReplicas <= 5 {
+		return explicitReplicas
+	}
+	sc := strings.ToLower(strings.TrimSpace(storageClass))
+	switch {
+	case strings.Contains(sc, "3x") || strings.Contains(sc, "ha-3") || strings.Contains(sc, "triple"):
+		return 3
+	case strings.Contains(sc, "2x") || strings.Contains(sc, "ha-2") || strings.Contains(sc, "replicated") || strings.Contains(sc, "rwx"):
+		return 2
+	default:
+		return 1
+	}
+}
+
+// ResolveStorageTierSKU determines the canonical billing SKU for a volume based on an explicit SKU,
+// the storage class name, and access modes.
+func ResolveStorageTierSKU(storageClass string, explicitSKU string, accessModes []string) string {
+	sku := strings.TrimSpace(explicitSKU)
+	if sku != "" {
+		return sku
+	}
+	sc := strings.ToLower(strings.TrimSpace(storageClass))
+	if sc == "emptydir" || strings.Contains(sc, "ephemeral") || strings.Contains(sc, "scratch") {
+		return StorageSKUEphemeral
+	}
+	if strings.Contains(sc, "rwx") || strings.Contains(sc, "nfs") {
+		return StorageSKUNFS
+	}
+	for _, m := range accessModes {
+		if strings.EqualFold(strings.TrimSpace(m), "ReadWriteMany") || strings.EqualFold(strings.TrimSpace(m), "RWX") {
+			return StorageSKUNFS
+		}
+	}
+	if strings.Contains(sc, "replicated") || strings.Contains(sc, "ha-2x") || strings.Contains(sc, "ha-3x") || strings.Contains(sc, "2x") || strings.Contains(sc, "3x") {
+		return StorageSKUBlockReplicated
+	}
+	return StorageSKUBlockStandard
+}
+
+// ResolveStorageClassForReplication maps a base storage class and desired replica count
+// to the concrete cluster StorageClass name.
+func ResolveStorageClassForReplication(baseClass string, replicas int, replicaClassMap map[string]string) string {
+	base := strings.TrimSpace(baseClass)
+	if base == "" {
+		base = "longhorn"
+	}
+	if replicas < 1 {
+		replicas = 1
+	}
+	if len(replicaClassMap) > 0 {
+		if mapped, ok := replicaClassMap[strconv.Itoa(replicas)]; ok && strings.TrimSpace(mapped) != "" {
+			return strings.TrimSpace(mapped)
+		}
+		if mapped, ok := replicaClassMap[fmt.Sprintf("%dx", replicas)]; ok && strings.TrimSpace(mapped) != "" {
+			return strings.TrimSpace(mapped)
+		}
+	}
+	lower := strings.ToLower(base)
+	if strings.Contains(lower, "longhorn") {
+		if strings.Contains(lower, "rwx") {
+			return "longhorn-rwx"
+		}
+		switch replicas {
+		case 3:
+			return "longhorn-ha-3x"
+		case 2:
+			return "longhorn-replicated"
+		case 1:
+			if lower == "longhorn-single" {
+				return "longhorn-single"
+			}
+			return "longhorn"
+		}
+	}
+	return base
+}
+
 

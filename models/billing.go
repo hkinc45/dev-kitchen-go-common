@@ -381,31 +381,41 @@ type BillingAccountAuditLog struct {
 
 // WorkloadUsageEventPayload is published on workload.started and workload.stopped.
 type WorkloadUsageEventPayload struct {
-	WorkloadID     uuid.UUID `json:"workload_id"`
-	ProjectID      uuid.UUID `json:"project_id"`
-	CPULimitM      int       `json:"cpu_limit_m"`
-	MemoryLimitMi  int       `json:"memory_limit_mi"`
-	ProductType    string    `json:"product_type,omitempty"`
-	Region         string    `json:"region,omitempty"`
-	RegionID       string    `json:"region_id,omitempty"`
-	ClusterID      string    `json:"cluster_id,omitempty"`
-	ClusterName    string    `json:"cluster_name,omitempty"`
-	SKU            string    `json:"sku,omitempty"`
-	AllocationType string    `json:"allocation_type,omitempty"`
-	Multiplier     float64   `json:"multiplier,omitempty"`
-	UserID         string    `json:"user_id,omitempty"`
-	Timestamp      time.Time `json:"timestamp"`
+	WorkloadID               uuid.UUID `json:"workload_id"`
+	ProjectID                uuid.UUID `json:"project_id"`
+	CPULimitM                int       `json:"cpu_limit_m"`
+	MemoryLimitMi            int       `json:"memory_limit_mi"`
+	StorageGB                int       `json:"storage_gb,omitempty"`
+	StorageClass             string    `json:"storage_class,omitempty"`
+	StorageSKU               string    `json:"storage_sku,omitempty"`
+	StorageReplicationFactor int       `json:"storage_replication_factor,omitempty"`
+	ProductType              string    `json:"product_type,omitempty"`
+	Region                   string    `json:"region,omitempty"`
+	RegionID                 string    `json:"region_id,omitempty"`
+	ClusterID                string    `json:"cluster_id,omitempty"`
+	ClusterName              string    `json:"cluster_name,omitempty"`
+	SKU                      string    `json:"sku,omitempty"`
+	AllocationType           string    `json:"allocation_type,omitempty"`
+	Multiplier               float64   `json:"multiplier,omitempty"`
+	UserID                   string    `json:"user_id,omitempty"`
+	Timestamp                time.Time `json:"timestamp"`
 }
 
 // StorageUsageEventPayload is published on storage.allocated and storage.deleted.
 type StorageUsageEventPayload struct {
-	StorageID   string    `json:"storage_id"`
-	ProjectID   uuid.UUID `json:"project_id"`
-	SizeGB      int       `json:"size_gb"`
-	ProductType string    `json:"product_type,omitempty"`
-	Region      string    `json:"region,omitempty"`
-	UserID      string    `json:"user_id,omitempty"`
-	Timestamp   time.Time `json:"timestamp"`
+	StorageID         string    `json:"storage_id"`
+	ProjectID         uuid.UUID `json:"project_id"`
+	SizeGB            int       `json:"size_gb"`
+	StorageClass      string    `json:"storage_class,omitempty"`
+	SKU               string    `json:"sku,omitempty"`
+	ReplicationFactor int       `json:"replication_factor,omitempty"`
+	Multiplier        float64   `json:"multiplier,omitempty"`
+	ProductType       string    `json:"product_type,omitempty"`
+	Region            string    `json:"region,omitempty"`
+	RegionID          string    `json:"region_id,omitempty"`
+	ClusterID         string    `json:"cluster_id,omitempty"`
+	UserID            string    `json:"user_id,omitempty"`
+	Timestamp         time.Time `json:"timestamp"`
 }
 
 // BudgetThresholdReachedPayload is published on billing.budget.threshold_reached.

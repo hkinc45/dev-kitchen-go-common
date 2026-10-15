@@ -150,4 +150,27 @@ func TestStorageModelsSerialization(t *testing.T) {
 		assert.Equal(t, item.Key, unmarshaledItem.Key)
 		assert.Equal(t, item.Size, unmarshaledItem.Size)
 	})
+
+	t.Run("ResolveStorageReplicationFactor and ResolveStorageTierSKU", func(t *testing.T) {
+		assert.Equal(t, 1, ResolveStorageReplicationFactor("longhorn", 0))
+		assert.Equal(t, 1, ResolveStorageReplicationFactor("longhorn-single", 0))
+		assert.Equal(t, 2, ResolveStorageReplicationFactor("longhorn-replicated", 0))
+		assert.Equal(t, 3, ResolveStorageReplicationFactor("longhorn-ha-3x", 0))
+		assert.Equal(t, 2, ResolveStorageReplicationFactor("longhorn-rwx", 0))
+		assert.Equal(t, 3, ResolveStorageReplicationFactor("longhorn", 3))
+
+		assert.Equal(t, StorageSKUBlockStandard, ResolveStorageTierSKU("longhorn", "", []string{"ReadWriteOnce"}))
+		assert.Equal(t, StorageSKUBlockReplicated, ResolveStorageTierSKU("longhorn-replicated", "", []string{"ReadWriteOnce"}))
+		assert.Equal(t, StorageSKUBlockReplicated, ResolveStorageTierSKU("longhorn-ha-3x", "", []string{"ReadWriteOnce"}))
+		assert.Equal(t, StorageSKUNFS, ResolveStorageTierSKU("longhorn-rwx", "", []string{"ReadWriteMany"}))
+		assert.Equal(t, StorageSKUNFS, ResolveStorageTierSKU("longhorn", "", []string{"ReadWriteMany"}))
+		assert.Equal(t, StorageSKUEphemeral, ResolveStorageTierSKU("emptyDir", "", nil))
+		assert.Equal(t, "storage.custom.nvme.gb", ResolveStorageTierSKU("ceph-nvme", "storage.custom.nvme.gb", nil))
+
+		assert.Equal(t, "longhorn", ResolveStorageClassForReplication("longhorn", 1, nil))
+		assert.Equal(t, "longhorn-replicated", ResolveStorageClassForReplication("longhorn", 2, nil))
+		assert.Equal(t, "longhorn-ha-3x", ResolveStorageClassForReplication("longhorn", 3, nil))
+		assert.Equal(t, "longhorn-rwx", ResolveStorageClassForReplication("longhorn-rwx", 2, nil))
+	})
 }
+
