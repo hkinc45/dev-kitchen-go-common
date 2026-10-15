@@ -109,11 +109,13 @@ const (
 
 // BackupScheduleOption describes an available recurring backup/snapshot schedule tier.
 type BackupScheduleOption struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Cron   string `json:"cron"`
-	Retain int    `json:"retain"`
-	Task   string `json:"task"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Label     string `json:"label,omitempty"`
+	Cron      string `json:"cron"`
+	Retain    int    `json:"retain"`
+	Task      string `json:"task"`
+	BackupSKU string `json:"backup_sku,omitempty"`
 }
 
 // VolumeDataSource represents the CSI dataSource used to populate a PVC.
@@ -215,6 +217,8 @@ func ResolveStorageReplicationFactor(storageClass string, explicitReplicas int) 
 	}
 	sc := strings.ToLower(strings.TrimSpace(storageClass))
 	switch {
+	case strings.Contains(sc, "single") || strings.Contains(sc, "1x") || sc == "longhorn":
+		return 1
 	case strings.Contains(sc, "3x") || strings.Contains(sc, "ha-3") || strings.Contains(sc, "triple"):
 		return 3
 	case strings.Contains(sc, "2x") || strings.Contains(sc, "ha-2") || strings.Contains(sc, "replicated") || strings.Contains(sc, "rwx"):
@@ -270,7 +274,14 @@ func ResolveStorageClassForReplication(baseClass string, replicas int, replicaCl
 	lower := strings.ToLower(base)
 	if strings.Contains(lower, "longhorn") {
 		if strings.Contains(lower, "rwx") {
-			return "longhorn-rwx"
+			switch replicas {
+			case 3:
+				return "longhorn-rwx-3x"
+			case 2:
+				return "longhorn-rwx"
+			default:
+				return "longhorn-rwx-single"
+			}
 		}
 		switch replicas {
 		case 3:
