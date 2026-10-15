@@ -28,6 +28,7 @@ const (
 	StorageSKUBlockReplicated = "storage.block.replicated.gb"
 	StorageSKUNFS             = "storage.nfs.gb"
 	StorageSKUEphemeral       = "storage.ephemeral.gb"
+	StorageSKUSnapshot        = "storage.snapshot.gb"
 	StorageSKUBackup          = "storage.backup.gb"
 	StorageSKUPVCDefault      = "storage.pvc.gb_month"
 )
@@ -118,6 +119,15 @@ type BackupScheduleOption struct {
 	BackupSKU string `json:"backup_sku,omitempty"`
 }
 
+// StorageClassOption represents an admin-configured Kubernetes StorageClass available for assignment to storage profiles.
+type StorageClassOption struct {
+	Name        string `json:"name"`
+	Label       string `json:"label"`
+	AccessMode  string `json:"access_mode,omitempty"`
+	Replicas    int    `json:"replicas,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
 // VolumeDataSource represents the CSI dataSource used to populate a PVC.
 type VolumeDataSource struct {
 	APIGroup string `json:"api_group,omitempty"`
@@ -125,7 +135,7 @@ type VolumeDataSource struct {
 	Name     string `json:"name"`
 }
 
-// VolumeRecord represents a normalized view of a project PVC and its backup schedule.
+// VolumeRecord represents a normalized view of a project PVC and its snapshot/backup schedules.
 type VolumeRecord struct {
 	Name                  string            `json:"name"`
 	Namespace             string            `json:"namespace"`
@@ -143,6 +153,7 @@ type VolumeRecord struct {
 	Phase                 string            `json:"phase"`
 	VolumeName            string            `json:"volume_name,omitempty"`
 	AccessModes           []string          `json:"access_modes"`
+	SnapshotSchedule      string            `json:"snapshot_schedule,omitempty"`
 	BackupSchedule        string            `json:"backup_schedule"`
 	SupportsSnapshots     bool              `json:"supports_snapshots"`
 	SupportsRemoteBackups bool              `json:"supports_remote_backups"`
@@ -173,11 +184,14 @@ type SnapshotRecord struct {
 	CreatedAt           time.Time         `json:"created_at"`
 }
 
-// UpdateBackupPolicyRequest defines the payload to update a PVC's recurring backup schedule.
+// UpdateBackupPolicyRequest defines the payload to update a PVC's recurring snapshot/backup schedule and/or replica count.
 type UpdateBackupPolicyRequest struct {
-	Schedule string `json:"schedule"` // "none", "hourly", "daily", "weekly"
-	Retain   int    `json:"retain,omitempty"`
-	Task     string    `json:"task,omitempty"`
+	Schedule          string `json:"schedule,omitempty"`
+	SnapshotSchedule  string `json:"snapshot_schedule,omitempty"`
+	BackupSchedule    string `json:"backup_schedule,omitempty"`
+	Retain            int    `json:"retain,omitempty"`
+	Task              string `json:"task,omitempty"`
+	ReplicationFactor int    `json:"replication_factor,omitempty"`
 }
 
 // CreateSnapshotRequest defines the payload to create a CSI VolumeSnapshot or backup.
@@ -204,6 +218,7 @@ type CreateVolumeFromSnapshotRequest struct {
 	CapacityGB         int    `json:"capacity_gb,omitempty"`
 	SizeGiB            int    `json:"size_gib,omitempty"`
 	AccessMode         string `json:"access_mode,omitempty"`
+	SnapshotSchedule   string `json:"snapshot_schedule,omitempty"`
 	BackupSchedule     string `json:"backup_schedule,omitempty"`
 	RecipeID           string `json:"recipe_id,omitempty"`
 	RecipeName         string `json:"recipe_name,omitempty"`
