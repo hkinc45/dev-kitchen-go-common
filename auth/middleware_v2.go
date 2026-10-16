@@ -55,8 +55,12 @@ func RequirePermissionV2(httpClient *http.Client, resourceType string, idExtract
 		// 3. Extract the resource ID using the provided extractor function
 		resourceID, err := idExtractor(c)
 		if err != nil {
-			slog.Error("failed to extract resource ID", "error", err, "resource_type", resourceType)
-			c.Error(common_errors.NewBadRequestError(fmt.Sprintf("failed to extract resource ID for permission check: %v", err)))
+			slog.Warn("failed to extract resource ID", "error", err, "resource_type", resourceType)
+			if apiErr, ok := err.(*common_errors.APIError); ok {
+				c.Error(apiErr)
+			} else {
+				c.Error(common_errors.NewNotFoundError(fmt.Sprintf("%s not found", resourceType)))
+			}
 			c.Abort()
 			return
 		}
@@ -102,6 +106,14 @@ func RequirePermissionV2(httpClient *http.Client, resourceType string, idExtract
 		case http.StatusOK:
 			slog.Info("permission granted", "resource", resourceType, "id", resourceID, "scope", scope)
 			c.Next() // Permission granted
+		case http.StatusNotFound, http.StatusBadRequest:
+			slog.Warn("resource not found or invalid ID during permission check", "resource", resourceType, "id", resourceID, "scope", scope, "status", resp.StatusCode)
+			c.Error(common_errors.NewNotFoundError(fmt.Sprintf("%s not found", resourceType)))
+			c.Abort()
+		case http.StatusUnauthorized:
+			slog.Warn("unauthorized during permission check", "resource", resourceType, "id", resourceID, "scope", scope)
+			c.Error(common_errors.NewUnauthorizedError("unauthorized"))
+			c.Abort()
 		case http.StatusForbidden:
 			slog.Warn("permission denied", "resource", resourceType, "id", resourceID, "scope", scope)
 			// The error message from the auth service is now more generic, so we create a specific one here.
